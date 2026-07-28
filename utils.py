@@ -1,4 +1,7 @@
 import os
+import warnings
+warnings.filterwarnings('ignore')
+
 import joblib
 import pandas as pd
 import numpy as np
@@ -16,70 +19,79 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "best_model.pkl")
 @st.cache_data
 def load_dataset():
     if os.path.exists(DATA_PATH):
-        df = pd.read_csv(DATA_PATH)
-        return df
+        try:
+            df = pd.read_csv(DATA_PATH)
+            return df
+        except Exception:
+            return None
     return None
 
 @st.cache_resource
 def load_model_bundle():
     if os.path.exists(MODEL_PATH):
         try:
-            bundle = joblib.load(MODEL_PATH)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                bundle = joblib.load(MODEL_PATH)
             return bundle
         except Exception as e:
             st.error(f"Error loading model bundle: {e}")
             return None
     return None
 
-def apply_plotly_theme(fig, height=350, title=None):
-    """Applies a consistent, high-end dark glassmorphic design theme to Plotly figures."""
+def apply_plotly_theme(fig, height=360, title=None):
+    """Applies a flawless, responsive dark glassmorphic design theme to Plotly figures."""
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor="rgba(0, 0, 0, 0)",
         plot_bgcolor="rgba(15, 23, 42, 0.4)",
         font=dict(family="Plus Jakarta Sans, sans-serif", color="#f8fafc", size=12),
-        title=dict(text=title, font=dict(size=16, color="#38bdf8", family="Outfit, sans-serif")) if title else None,
+        title=dict(
+            text=title,
+            font=dict(size=16, color="#38bdf8", family="Outfit, sans-serif")
+        ) if title else None,
         height=height,
-        margin=dict(l=30, r=30, t=50 if title else 30, b=30),
+        autosize=True,
+        margin=dict(l=35, r=35, t=55 if title else 25, b=35),
         xaxis=dict(
-            gridcolor="rgba(255, 255, 255, 0.07)",
+            gridcolor="rgba(255, 255, 255, 0.08)",
             zerolinecolor="rgba(255, 255, 255, 0.15)",
             showline=True,
-            linecolor="rgba(255, 255, 255, 0.1)"
+            linecolor="rgba(255, 255, 255, 0.12)"
         ),
         yaxis=dict(
-            gridcolor="rgba(255, 255, 255, 0.07)",
+            gridcolor="rgba(255, 255, 255, 0.08)",
             zerolinecolor="rgba(255, 255, 255, 0.15)",
             showline=True,
-            linecolor="rgba(255, 255, 255, 0.1)"
+            linecolor="rgba(255, 255, 255, 0.12)"
         ),
         legend=dict(
-            bgcolor="rgba(15, 23, 42, 0.6)",
-            bordercolor="rgba(255, 255, 255, 0.1)",
+            bgcolor="rgba(15, 23, 42, 0.7)",
+            bordercolor="rgba(255, 255, 255, 0.12)",
             borderwidth=1
         )
     )
     return fig
 
 def render_glass_card(title, value, subtext="", icon="🏗️", gradient="linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)", border_color="rgba(56, 189, 248, 0.3)"):
-    """Generates ultra-premium glassmorphic metric card HTML."""
+    """Generates a responsive glassmorphic metric card HTML snippet."""
     html_code = f"""
     <div style="
-        background: rgba(30, 41, 59, 0.6);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: rgba(30, 41, 59, 0.65);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         border: 1px solid {border_color};
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        transition: all 0.3s ease-in-out;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
         margin-bottom: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Plus Jakarta Sans', sans-serif;">{title}</span>
-            <span style="font-size: 1.5rem; background: {gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{icon}</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; font-family: 'Plus Jakarta Sans', sans-serif;">{title}</span>
+            <span style="font-size: 1.4rem;">{icon}</span>
         </div>
-        <div style="font-size: 2rem; font-weight: 800; background: {gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; line-height: 1.2;">
+        <div style="font-size: 1.9rem; font-weight: 800; background: {gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; line-height: 1.25;">
             {value}
         </div>
         {f'<div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 6px; font-weight: 500;">{subtext}</div>' if subtext else ''}
@@ -89,7 +101,7 @@ def render_glass_card(title, value, subtext="", icon="🏗️", gradient="linear
 
 def predict_single_sample(sample_dict, bundle):
     """
-    Takes a dictionary of feature values and predicts the risk score / target using bundle.
+    Predicts risk score using bundle with full DataFrame feature naming to eliminate sklearn warnings.
     """
     if bundle is None:
         return None, "Model bundle not loaded"
@@ -122,22 +134,27 @@ def predict_single_sample(sample_dict, bundle):
     else:
         X_scaled = X
 
-    prediction = model.predict(X_scaled)[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        prediction = model.predict(X_scaled)[0]
+        
     return prediction, None
 
 def get_risk_level_info(score):
     """Returns risk category, CSS color, gradient, and actionable recommendation."""
-    if score < 25:
+    score_clean = max(0.0, min(100.0, float(score)))
+    
+    if score_clean < 25:
         return {
             "level": "LOW RISK",
             "color": "#10b981",
             "gradient": "linear-gradient(135deg, #10b981 0%, #34d399 100%)",
             "bg_color": "rgba(16, 185, 129, 0.15)",
             "border_color": "rgba(16, 185, 129, 0.4)",
-            "description": "Construction metrics are optimal. All operational parameters are within safe thresholds.",
+            "description": "Construction metrics are optimal. All operational parameters are within safe limits.",
             "action": "Maintain current operational parameters and monitor routine telemetry."
         }
-    elif score < 50:
+    elif score_clean < 50:
         return {
             "level": "MODERATE RISK",
             "color": "#f59e0b",
@@ -147,7 +164,7 @@ def get_risk_level_info(score):
             "description": "Minor cost deviations or equipment underutilization detected.",
             "action": "Inspect equipment utilization rates and optimize raw material allocation."
         }
-    elif score < 75:
+    elif score_clean < 75:
         return {
             "level": "HIGH RISK",
             "color": "#ef4444",
@@ -225,8 +242,10 @@ def train_custom_models(df, target_col, selected_model_names, test_size=0.2, ran
     trained_models = {}
     
     for name, model in model_dict.items():
-        model.fit(X_train, y_train)
-        preds = model.predict(X_test)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
         trained_models[name] = model
         
         if not is_classification:
