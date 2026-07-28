@@ -13,11 +13,21 @@ st.set_page_config(
 # Custom High-End Aesthetics & Modern Glassmorphism CSS Design System
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
     /* Global Reset & Typography */
-    html, body, [class*="st-"] {
+    html, body, p, div, h1, h2, h3, h4, h5, h6, label, input, button {
         font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    
+    /* Preserve Streamlit Material Symbols Icons font */
+    .material-symbols-outlined,
+    .material-icons,
+    [data-testid="stIcon"],
+    [class*="material-symbols"],
+    [data-testid="stSidebarCollapseButton"] *,
+    [data-testid="collapsedControl"] * {
+        font-family: 'Material Symbols Outlined', 'Material Icons', sans-serif !important;
     }
     
     .stApp {
