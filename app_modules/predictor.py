@@ -2,18 +2,21 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from utils import predict_single_sample, get_risk_level_info
+from utils import predict_single_sample, get_risk_level_info, apply_plotly_theme
 
 def render_predictor_page(df, bundle):
-    st.markdown("## 🎯 Real-Time Construction Risk Predictor")
-    st.markdown("Enter site telemetry and operational metrics to receive instant risk score predictions and mitigation guidelines.")
+    st.markdown("""
+    <div style="margin-bottom: 20px;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🎯 Real-Time Construction Risk Predictor</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Input site telemetry metrics for instant AI risk scoring and mitigation instructions.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if bundle is None:
-        st.error("⚠️ Model bundle (`best_model.pkl`) could not be loaded. Please ensure the file is in the root directory.")
+        st.error("⚠️ Model bundle (`best_model.pkl`) missing.")
         return
 
-    # Sample presets
-    st.markdown("#### ⚡ Quick Preset Configuration")
+    st.markdown("#### ⚡ Quick Preset Profiles")
     preset = st.radio(
         "Load Preset Profile:",
         ["Custom Input", "Optimal Low Risk Site", "Moderate Risk Site", "High Shortage & Vibration Site"],
@@ -80,35 +83,35 @@ def render_predictor_page(df, bundle):
             "time_deviation": 15.0
         })
 
-    st.markdown("---")
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
     
     with st.form("risk_predictor_form"):
-        st.markdown("### 📋 Site Parameter Controls")
+        st.markdown("<h3 style='font-family: Outfit, sans-serif; color: #38bdf8;'>📋 Site Telemetry Input Panel</h3>", unsafe_allow_html=True)
         
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            st.markdown("##### 🌡️ Environmental & Sensor Parameters")
+            st.markdown("##### 🌡️ Environmental & Sensors")
             temp = st.number_input("Temperature (°C)", min_value=0.0, max_value=60.0, value=float(defaults["temperature"]), step=0.5)
             humidity = st.number_input("Humidity (%)", min_value=0.0, max_value=100.0, value=float(defaults["humidity"]), step=1.0)
             vibration = st.number_input("Vibration Level", min_value=0.0, max_value=100.0, value=float(defaults["vibration_level"]), step=1.0)
-            energy = st.number_input("Energy Consumption (kWh)", min_value=0.0, max_value=2000.0, value=float(defaults["energy_consumption"]), step=10.0)
+            energy = st.number_input("Energy Usage (kWh)", min_value=0.0, max_value=2000.0, value=float(defaults["energy_consumption"]), step=10.0)
 
         with c2:
             st.markdown("##### 👷 Workforce & Equipment")
             workers = st.number_input("Worker Count", min_value=1, max_value=100, value=int(defaults["worker_count"]), step=1)
-            machinery = st.selectbox("Machinery Status", options=[1, 0], index=0 if defaults["machinery_status"] == 1 else 1, format_func=lambda x: "Active / Operational (1)" if x == 1 else "Idle / Offline (0)")
-            utilization = st.slider("Equipment Utilization Rate (%)", 0.0, 100.0, float(defaults["equipment_utilization_rate"]), step=1.0)
-            safety = st.number_input("Safety Incidents Logged", min_value=0, max_value=20, value=int(defaults["safety_incidents"]), step=1)
+            machinery = st.selectbox("Machinery Status", options=[1, 0], index=0 if defaults["machinery_status"] == 1 else 1, format_func=lambda x: "Active (1)" if x == 1 else "Idle / Offline (0)")
+            utilization = st.slider("Equipment Utilization (%)", 0.0, 100.0, float(defaults["equipment_utilization_rate"]), step=1.0)
+            safety = st.number_input("Safety Incidents", min_value=0, max_value=20, value=int(defaults["safety_incidents"]), step=1)
 
         with c3:
-            st.markdown("##### 📦 Material & Schedule Deviations")
-            material_use = st.number_input("Material Usage Rate", min_value=0.0, max_value=1000.0, value=float(defaults["material_usage"]), step=5.0)
-            shortage = st.selectbox("Material Shortage Alert", options=[0, 1], index=0 if defaults["material_shortage_alert"] == 0 else 1, format_func=lambda x: "No Shortage (0)" if x == 0 else "Material Shortage Alert! (1)")
+            st.markdown("##### 📦 Supply & Deviations")
+            material_use = st.number_input("Material Usage", min_value=0.0, max_value=1000.0, value=float(defaults["material_usage"]), step=5.0)
+            shortage = st.selectbox("Material Shortage Alert", options=[0, 1], index=0 if defaults["material_shortage_alert"] == 0 else 1, format_func=lambda x: "Normal (0)" if x == 0 else "Shortage Alert! (1)")
             cost_dev = st.number_input("Cost Deviation ($)", value=float(defaults["cost_deviation"]), step=100.0)
             time_dev = st.number_input("Time Deviation (Hours)", value=float(defaults["time_deviation"]), step=1.0)
 
-        st.markdown("##### ⚙️ Advanced System Metadata")
+        st.markdown("##### ⚙️ System Options")
         sc1, sc2, sc3 = st.columns(3)
         with sc1:
             progress = st.slider("Task Progress", 0.0, 1.0, float(defaults["task_progress"]), step=0.05)
@@ -146,57 +149,55 @@ def render_predictor_page(df, bundle):
         if err:
             st.error(f"Prediction Error: {err}")
         else:
-            # Bound risk score cleanly between 0 and 100 for display gauge
             display_score = max(0.0, min(100.0, float(risk_score)))
             info = get_risk_level_info(display_score)
 
-            st.markdown("---")
-            st.subheader("🎯 Prediction Output & Risk Assessment")
+            st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+            st.markdown("### 🎯 Risk Assessment & AI Recommendation")
 
             out_col1, out_col2 = st.columns([1, 1])
 
             with out_col1:
-                # Gauge Chart
                 fig_gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=round(display_score, 1),
                     domain={'x': [0, 1], 'y': [0, 1]},
-                    title={'text': "Predicted Construction Risk Score", 'font': {'size': 20, 'color': "white"}},
+                    title={'text': "Predicted Site Risk Score", 'font': {'size': 20, 'color': "white", 'family': "Outfit"}},
                     gauge={
                         'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "white"},
                         'bar': {'color': info['color']},
-                        'bgcolor': "#1e293b",
-                        'bordercolor': "#475569",
+                        'bgcolor': "rgba(15, 23, 42, 0.6)",
+                        'bordercolor': "rgba(255, 255, 255, 0.15)",
                         'steps': [
                             {'range': [0, 25], 'color': 'rgba(16, 185, 129, 0.25)'},
                             {'range': [25, 50], 'color': 'rgba(245, 158, 11, 0.25)'},
                             {'range': [50, 75], 'color': 'rgba(239, 68, 68, 0.25)'},
-                            {'range': [75, 100], 'color': 'rgba(136, 19, 55, 0.4)'}
+                            {'range': [75, 100], 'color': 'rgba(244, 63, 94, 0.35)'}
                         ],
                     }
                 ))
-                fig_gauge.update_layout(template="plotly_dark", height=320, margin=dict(l=30, r=30, t=50, b=20))
+                apply_plotly_theme(fig_gauge, height=330)
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
             with out_col2:
-                st.markdown(f"### Assessment: <span style='color:{info['color']}; font-weight:bold;'>{info['level']}</span>", unsafe_allow_html=True)
-                st.markdown(f"**Description**: {info['description']}")
-                
-                st.info(f"💡 **Recommended Action**: {info['action']}")
-                
-                # Dynamic Breakdown Cards
-                st.markdown("##### 📌 Key Influencing Indicators:")
-                bullets = []
-                if shortage == 1:
-                    bullets.append("⚠️ **Material Shortage Alert Active**: Immediate supplier re-orders required.")
-                if safety > 0:
-                    bullets.append(f"🚨 **{safety} Safety Incident(s)** logged on site.")
-                if utilization < 60:
-                    bullets.append(f"📉 **Low Equipment Utilization ({utilization}%)**: Machinery underperforming.")
-                if cost_dev > 2000:
-                    bullets.append(f"💸 **High Cost Overrun (${cost_dev:,.2f})**.")
-                if not bullets:
-                    bullets.append("✅ Telemetry metrics are within healthy limits.")
-                    
-                for b in bullets:
-                    st.markdown(f"- {b}")
+                st.markdown(f"""
+                <div style="
+                    background: {info['bg_color']};
+                    border: 1px solid {info['border_color']};
+                    border-radius: 16px;
+                    padding: 24px;
+                    margin-bottom: 16px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                ">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: {info['color']}; text-transform: uppercase; letter-spacing: 0.05em;">RISK EVALUATION</div>
+                    <div style="font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 800; color: {info['color']}; margin: 4px 0 12px 0;">
+                        {info['level']}
+                    </div>
+                    <div style="color: #f8fafc; font-size: 0.95rem; line-height: 1.5; margin-bottom: 16px;">
+                        {info['description']}
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 16px; border-radius: 10px; color: #38bdf8; font-weight: 600; font-size: 0.9rem;">
+                        💡 <strong>Action Required:</strong> {info['action']}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)

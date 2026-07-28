@@ -31,6 +31,62 @@ def load_model_bundle():
             return None
     return None
 
+def apply_plotly_theme(fig, height=350, title=None):
+    """Applies a consistent, high-end dark glassmorphic design theme to Plotly figures."""
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0, 0, 0, 0)",
+        plot_bgcolor="rgba(15, 23, 42, 0.4)",
+        font=dict(family="Plus Jakarta Sans, sans-serif", color="#f8fafc", size=12),
+        title=dict(text=title, font=dict(size=16, color="#38bdf8", family="Outfit, sans-serif")) if title else None,
+        height=height,
+        margin=dict(l=30, r=30, t=50 if title else 30, b=30),
+        xaxis=dict(
+            gridcolor="rgba(255, 255, 255, 0.07)",
+            zerolinecolor="rgba(255, 255, 255, 0.15)",
+            showline=True,
+            linecolor="rgba(255, 255, 255, 0.1)"
+        ),
+        yaxis=dict(
+            gridcolor="rgba(255, 255, 255, 0.07)",
+            zerolinecolor="rgba(255, 255, 255, 0.15)",
+            showline=True,
+            linecolor="rgba(255, 255, 255, 0.1)"
+        ),
+        legend=dict(
+            bgcolor="rgba(15, 23, 42, 0.6)",
+            bordercolor="rgba(255, 255, 255, 0.1)",
+            borderwidth=1
+        )
+    )
+    return fig
+
+def render_glass_card(title, value, subtext="", icon="🏗️", gradient="linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)", border_color="rgba(56, 189, 248, 0.3)"):
+    """Generates ultra-premium glassmorphic metric card HTML."""
+    html_code = f"""
+    <div style="
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid {border_color};
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease-in-out;
+        margin-bottom: 12px;
+    ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Plus Jakarta Sans', sans-serif;">{title}</span>
+            <span style="font-size: 1.5rem; background: {gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{icon}</span>
+        </div>
+        <div style="font-size: 2rem; font-weight: 800; background: {gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Outfit', sans-serif; line-height: 1.2;">
+            {value}
+        </div>
+        {f'<div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 6px; font-weight: 500;">{subtext}</div>' if subtext else ''}
+    </div>
+    """
+    return html_code
+
 def predict_single_sample(sample_dict, bundle):
     """
     Takes a dictionary of feature values and predicts the risk score / target using bundle.
@@ -44,12 +100,10 @@ def predict_single_sample(sample_dict, bundle):
     scaler = bundle.get('scaler', None)
     model = bundle.get('model', None)
 
-    # Ensure all feature columns exist
     for col in feature_cols:
         if col not in df_sample.columns:
             df_sample[col] = 0
 
-    # Encode categorical columns
     for col, enc in encoders.items():
         if col in df_sample.columns:
             val = str(df_sample[col].iloc[0])
@@ -58,7 +112,6 @@ def predict_single_sample(sample_dict, bundle):
             else:
                 df_sample[col] = 0
 
-    # Ensure numeric order
     X = df_sample[feature_cols].copy()
     for col in X.columns:
         X[col] = pd.to_numeric(X[col], errors='coerce').fillna(0)
@@ -73,53 +126,55 @@ def predict_single_sample(sample_dict, bundle):
     return prediction, None
 
 def get_risk_level_info(score):
-    """Returns risk category, CSS color, and actionable recommendation."""
+    """Returns risk category, CSS color, gradient, and actionable recommendation."""
     if score < 25:
         return {
             "level": "LOW RISK",
-            "color": "#10b981", # Green
-            "badge_class": "badge-success",
-            "description": "Construction metrics are optimal. Project running smoothly.",
+            "color": "#10b981",
+            "gradient": "linear-gradient(135deg, #10b981 0%, #34d399 100%)",
+            "bg_color": "rgba(16, 185, 129, 0.15)",
+            "border_color": "rgba(16, 185, 129, 0.4)",
+            "description": "Construction metrics are optimal. All operational parameters are within safe thresholds.",
             "action": "Maintain current operational parameters and monitor routine telemetry."
         }
     elif score < 50:
         return {
             "level": "MODERATE RISK",
-            "color": "#f59e0b", # Orange
-            "badge_class": "badge-warning",
-            "description": "Minor deviations in cost, equipment, or material usage detected.",
+            "color": "#f59e0b",
+            "gradient": "linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)",
+            "bg_color": "rgba(245, 158, 11, 0.15)",
+            "border_color": "rgba(245, 158, 11, 0.4)",
+            "description": "Minor cost deviations or equipment underutilization detected.",
             "action": "Inspect equipment utilization rates and optimize raw material allocation."
         }
     elif score < 75:
         return {
             "level": "HIGH RISK",
-            "color": "#ef4444", # Red
-            "badge_class": "badge-danger",
-            "description": "Significant risk of cost overrun, safety incidents, or project delays.",
+            "color": "#ef4444",
+            "gradient": "linear-gradient(135deg, #ef4444 0%, #f87171 100%)",
+            "bg_color": "rgba(239, 68, 68, 0.15)",
+            "border_color": "rgba(239, 68, 68, 0.4)",
+            "description": "Elevated risk of cost overrun, safety incidents, or project delays.",
             "action": "Reallocate worker shift schedules, check machinery health, and resolve shortages immediately."
         }
     else:
         return {
             "level": "CRITICAL RISK",
-            "color": "#881337", # Dark red
-            "badge_class": "badge-critical",
-            "description": "Severe operational bottlenecks, high safety incidents, or critical material shortages.",
+            "color": "#f43f5e",
+            "gradient": "linear-gradient(135deg, #881337 0%, #f43f5e 100%)",
+            "bg_color": "rgba(244, 63, 94, 0.2)",
+            "border_color": "rgba(244, 63, 94, 0.6)",
+            "description": "Severe operational bottlenecks, safety hazards, or critical material shortages.",
             "action": "Halt affected site sub-operations, re-evaluate site safety protocols, and trigger emergency resource dispatch."
         }
 
 def train_custom_models(df, target_col, selected_model_names, test_size=0.2, random_state=42):
-    """
-    Trains selected ML models on df for target_col and returns results dataframe + trained models.
-    """
     df_clean = df.copy().dropna()
-    
-    # Determine problem type
     is_classification = df_clean[target_col].dtype == 'object' or df_clean[target_col].nunique() < 10
     
     X = df_clean.drop(columns=[target_col])
     y = df_clean[target_col]
     
-    # Handle timestamp if present
     if 'timestamp' in X.columns:
         X = X.drop(columns=['timestamp'])
         

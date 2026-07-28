@@ -2,17 +2,19 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from utils import predict_single_sample, get_risk_level_info
+from utils import predict_single_sample, get_risk_level_info, render_glass_card, apply_plotly_theme
 
 def render_simulator_page(df, bundle):
-    st.markdown("## ⚡ Interactive Construction Site Simulator")
-    st.markdown("Perform **What-If Scenario Analysis** to see how adjusting site workforce, machinery status, or material supply impacts predicted construction risk.")
+    st.markdown("""
+    <div style="margin-bottom: 20px;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">⚡ Interactive Construction Site Simulator</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">What-If Scenario Simulator to test operational adjustments on overall site risk.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if bundle is None:
         st.error("Model bundle unavailable.")
         return
-
-    st.markdown("### 🎛️ Baseline vs. Simulated Scenario Comparison")
 
     base_sample = {
         "timestamp": "2026-07-28 12:00:00",
@@ -41,7 +43,7 @@ def render_simulator_page(df, bundle):
     col_sim_controls, col_sim_outputs = st.columns([1, 1])
 
     with col_sim_controls:
-        st.markdown("#### 🔧 Modify Site Operational Levers")
+        st.markdown("#### 🔧 Modify Operational Levers")
         
         sim_workers = st.slider("Simulated Worker Count", 1, 50, int(base_sample["worker_count"]))
         sim_machinery = st.selectbox("Simulated Machinery Status", [1, 0], index=0 if base_sample["machinery_status"]==1 else 1, format_func=lambda x: "Active (1)" if x == 1 else "Offline (0)")
@@ -70,25 +72,21 @@ def render_simulator_page(df, bundle):
         
         c_base, c_sim = st.columns(2)
         with c_base:
-            st.metric("Baseline Risk Score", f"{base_score_clean:.1f}")
+            st.markdown(render_glass_card("Baseline Risk", f"{base_score_clean:.1f}", "Current site state", "📌"), unsafe_allow_html=True)
         with c_sim:
-            st.metric("Simulated Risk Score", f"{sim_score_clean:.1f}", delta=f"{delta_score:+.1f} pts", delta_color="inverse")
+            delta_color = "linear-gradient(135deg, #10b981 0%, #34d399 100%)" if delta_score <= 0 else "linear-gradient(135deg, #ef4444 0%, #f87171 100%)"
+            st.markdown(render_glass_card("Simulated Risk", f"{sim_score_clean:.1f}", f"Delta: {delta_score:+.1f} pts", "⚡", delta_color), unsafe_allow_html=True)
 
-        # Visual Comparison Bar
         fig_sim_cmp = go.Figure()
         fig_sim_cmp.add_trace(go.Bar(
             x=["Baseline Scenario", "Simulated Scenario"],
             y=[base_score_clean, sim_score_clean],
-            marker_color=["#3b82f6", "#10b981" if delta_score <= 0 else "#ef4444"],
+            marker_color=["#38bdf8", "#10b981" if delta_score <= 0 else "#ef4444"],
             text=[f"{base_score_clean:.1f}", f"{sim_score_clean:.1f}"],
             textposition="auto"
         ))
-        fig_sim_cmp.update_layout(
-            title="Baseline vs. Simulated Risk Score Comparison",
-            template="plotly_dark",
-            height=320,
-            yaxis=dict(range=[0, 100])
-        )
+        apply_plotly_theme(fig_sim_cmp, height=300, title="Baseline vs. Simulated Risk Score")
+        fig_sim_cmp.update_layout(yaxis=dict(range=[0, 100]))
         st.plotly_chart(fig_sim_cmp, use_container_width=True)
 
         base_info = get_risk_level_info(base_score_clean)
@@ -98,8 +96,8 @@ def render_simulator_page(df, bundle):
         st.markdown(f"**Simulated Status**: <span style='color:{sim_info['color']}; font-weight:bold;'>{sim_info['level']}</span>", unsafe_allow_html=True)
 
         if delta_score < -2.0:
-            st.success("🎉 Operational change successfully reduced project risk!")
+            st.success("🎉 Operational adjustments successfully lowered the site risk score!")
         elif delta_score > 2.0:
-            st.warning("⚠️ Operational change increased project risk level.")
+            st.warning("⚠️ Operational adjustments increased the predicted risk score.")
         else:
-            st.info("ℹ️ Minimal change in risk score detected.")
+            st.info("ℹ️ Minimal change in overall risk score.")

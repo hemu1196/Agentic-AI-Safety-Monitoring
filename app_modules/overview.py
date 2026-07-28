@@ -3,13 +3,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+from utils import render_glass_card, apply_plotly_theme
 
 def render_overview_page(df):
-    st.markdown("## 🏗️ Executive Operational Overview")
-    st.markdown("Real-time telemetry indicators and summary analytics for ongoing construction projects.")
+    st.markdown("""
+    <div style="margin-bottom: 24px;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">📊 Executive Operational Control Center</h2>
+        <p style="color: #94a3b8; margin-top: 4px; font-size: 0.95rem;">Real-time site telemetry, equipment efficiency metrics, and risk distributions.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if df is None:
-        st.warning("Dataset unavailable. Please check data source.")
+        st.warning("Dataset unavailable.")
         return
         
     total_records = len(df)
@@ -17,44 +22,77 @@ def render_overview_page(df):
     avg_equip_util = df['equipment_utilization_rate'].mean() if 'equipment_utilization_rate' in df.columns else 0
     total_safety = df['safety_incidents'].sum() if 'safety_incidents' in df.columns else 0
     shortage_alerts = df['material_shortage_alert'].sum() if 'material_shortage_alert' in df.columns else 0
-    avg_cost_dev = df['cost_deviation'].mean() if 'cost_deviation' in df.columns else 0
 
-    # Top KPI Metrics Cards
+    # Glassmorphic KPI Cards
     c1, c2, c3, c4, c5 = st.columns(5)
+    
     with c1:
-        st.metric("Total Site Logs", f"{total_records:,}")
+        st.markdown(render_glass_card(
+            title="Total Telemetry Logs",
+            value=f"{total_records:,}",
+            subtext="50,000 active site records",
+            icon="📡",
+            gradient="linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)",
+            border_color="rgba(56, 189, 248, 0.4)"
+        ), unsafe_allow_html=True)
+        
     with c2:
-        st.metric("Avg Risk Score", f"{avg_risk:.1f}", delta=f"{'-' if avg_risk > 30 else '+'}{avg_risk:.1f}", delta_color="inverse")
-    with c3:
-        st.metric("Equipment Utilization", f"{avg_equip_util:.1f}%")
-    with c4:
-        st.metric("Material Shortages", f"{shortage_alerts:,}", delta=f"{shortage_alerts} sites", delta_color="inverse")
-    with c5:
-        st.metric("Safety Incidents", f"{int(total_safety):,}", delta=f"{int(total_safety)} logged", delta_color="inverse")
+        st.markdown(render_glass_card(
+            title="Avg Site Risk Score",
+            value=f"{avg_risk:.1f}",
+            subtext="Scale: 0 (Safe) - 100 (Critical)",
+            icon="🛡️",
+            gradient="linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)",
+            border_color="rgba(245, 158, 11, 0.4)"
+        ), unsafe_allow_html=True)
 
-    st.markdown("---")
+    with c3:
+        st.markdown(render_glass_card(
+            title="Equipment Utilization",
+            value=f"{avg_equip_util:.1f}%",
+            subtext="Machinery uptime ratio",
+            icon="🚜",
+            gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)",
+            border_color="rgba(16, 185, 129, 0.4)"
+        ), unsafe_allow_html=True)
+
+    with c4:
+        st.markdown(render_glass_card(
+            title="Material Shortages",
+            value=f"{shortage_alerts:,}",
+            subtext="Active shortage alerts",
+            icon="📦",
+            gradient="linear-gradient(135deg, #ef4444 0%, #f87171 100%)",
+            border_color="rgba(239, 68, 68, 0.4)"
+        ), unsafe_allow_html=True)
+
+    with c5:
+        st.markdown(render_glass_card(
+            title="Safety Incidents",
+            value=f"{int(total_safety):,}",
+            subtext="Logged on-site events",
+            icon="⚠️",
+            gradient="linear-gradient(135deg, #c084fc 0%, #e879f9 100%)",
+            border_color="rgba(192, 132, 252, 0.4)"
+        ), unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
     col_left, col_right = st.columns([6, 4])
     
     with col_left:
-        st.subheader("📈 Project Risk Score Distribution")
         fig_hist = px.histogram(
             df,
             x="risk_score",
             nbins=40,
-            color_discrete_sequence=["#3b82f6"],
-            title="Distribution of Construction Risk Scores",
-            labels={"risk_score": "Risk Score (0-100)"}
+            color_discrete_sequence=["#38bdf8"],
+            title="📈 Construction Risk Score Distribution",
+            labels={"risk_score": "Risk Score (0 - 100)"}
         )
-        fig_hist.update_layout(
-            template="plotly_dark",
-            margin=dict(l=20, r=20, t=40, b=20),
-            height=320
-        )
+        apply_plotly_theme(fig_hist, height=340)
         st.plotly_chart(fig_hist, use_container_width=True)
 
     with col_right:
-        st.subheader("💡 Optimization Suggestions Breakdown")
         if "optimization_suggestion" in df.columns:
             opt_counts = df["optimization_suggestion"].value_counts().reset_index()
             opt_counts.columns = ["Suggestion", "Count"]
@@ -62,43 +100,41 @@ def render_overview_page(df):
                 opt_counts,
                 names="Suggestion",
                 values="Count",
-                color_discrete_sequence=px.colors.qualitative.Pastel,
-                hole=0.4
+                color_discrete_sequence=["#38bdf8", "#818cf8", "#fbbf24", "#f43f5e"],
+                title="💡 Optimization Strategy Distribution",
+                hole=0.45
             )
-            fig_pie.update_layout(
-                template="plotly_dark",
-                margin=dict(l=20, r=20, t=40, b=20),
-                height=320
-            )
+            apply_plotly_theme(fig_pie, height=340)
+            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig_pie, use_container_width=True)
 
-    st.markdown("### 📊 Operational Telemetry Overview")
+    st.markdown("### 📊 Operational Telemetry Analytics")
     t1, t2 = st.columns(2)
     
     with t1:
-        st.markdown("#### Equipment Utilization vs. Machinery Status")
         if "equipment_utilization_rate" in df.columns and "machinery_status" in df.columns:
             fig_box = px.box(
                 df,
                 x="machinery_status",
                 y="equipment_utilization_rate",
                 color="machinery_status",
-                labels={"machinery_status": "Machinery Active (0=Idle, 1=Active)", "equipment_utilization_rate": "Utilization (%)"},
-                color_discrete_map={0: "#ef4444", 1: "#10b981"}
+                title="🚜 Equipment Utilization Rate by Machinery Status",
+                labels={"machinery_status": "Machinery Active (0 = Idle, 1 = Active)", "equipment_utilization_rate": "Utilization (%)"},
+                color_discrete_map={0: "#f43f5e", 1: "#10b981"}
             )
-            fig_box.update_layout(template="plotly_dark", height=300)
+            apply_plotly_theme(fig_box, height=330)
             st.plotly_chart(fig_box, use_container_width=True)
             
     with t2:
-        st.markdown("#### Cost Deviation vs. Time Deviation")
         if "cost_deviation" in df.columns and "time_deviation" in df.columns:
             fig_scat = px.scatter(
-                df.sample(min(1000, len(df))),
+                df.sample(min(1200, len(df))),
                 x="time_deviation",
                 y="cost_deviation",
                 color="risk_score" if "risk_score" in df.columns else None,
-                color_continuous_scale="Viridis",
+                color_continuous_scale="Turbo",
+                title="💸 Cost Deviation ($) vs. Time Deviation (Hours)",
                 labels={"time_deviation": "Time Deviation (Hours)", "cost_deviation": "Cost Deviation ($)"}
             )
-            fig_scat.update_layout(template="plotly_dark", height=300)
+            apply_plotly_theme(fig_scat, height=330)
             st.plotly_chart(fig_scat, use_container_width=True)
