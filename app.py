@@ -184,6 +184,7 @@ with st.sidebar:
             "🔍 EDA & Analytics Studio",
             "🤖 ML Pipeline & Benchmark",
             "🎯 Real-Time Risk Predictor",
+            "🌐 3D Digital Twin Viewer",
             "📁 Batch CSV Predictor",
             "⚡ What-If Site Simulator"
         ]
@@ -246,6 +247,10 @@ elif selected_page == "🤖 ML Pipeline & Benchmark":
 elif selected_page == "🎯 Real-Time Risk Predictor":
     from app_modules.predictor import render_predictor_page
     render_predictor_page(df, bundle)
+
+elif selected_page == "🌐 3D Digital Twin Viewer":
+    from app_modules.digital_twin_3d import render_3d_digital_twin_page
+    render_3d_digital_twin_page(df, bundle)
 
 elif selected_page == "📁 Batch CSV Predictor":
     from app_modules.batch_predict import render_batch_predict_page
