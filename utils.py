@@ -185,6 +185,98 @@ def get_risk_level_info(score):
             "action": "Halt affected site sub-operations, re-evaluate site safety protocols, and trigger emergency resource dispatch."
         }
 
+# --- MILESTONE CALCULATION ENGINES ---
+
+def compute_hazard_indices(temp, humidity, vibration, energy):
+    """
+    Milestone 1: Computes Thermal Stress Index (WBGT proxy), Vibration Fatigue %, and Anomaly Alerts.
+    """
+    # WBGT Heat Strain Index proxy formula
+    wbgt = (0.7 * temp) + (0.2 * (humidity / 100.0) * temp) + 5.0
+    
+    # Vibration Fatigue % (0-100)
+    vib_fatigue = min(100.0, (vibration / 80.0) * 100.0)
+    
+    # Thermal Energy Overload Alert
+    is_thermal_hazard = temp > 35.0 or wbgt > 32.0
+    is_vibration_hazard = vibration > 50.0
+    is_energy_spike = energy > 600.0
+    
+    hazard_status = "CRITICAL HAZARD" if (is_thermal_hazard and is_vibration_hazard) else (
+        "MODERATE HAZARD" if (is_thermal_hazard or is_vibration_hazard or is_energy_spike) else "SAFE ENVIRONMENT"
+    )
+    
+    return {
+        "wbgt_index": round(wbgt, 1),
+        "vibration_fatigue_pct": round(vib_fatigue, 1),
+        "is_thermal_hazard": is_thermal_hazard,
+        "is_vibration_hazard": is_vibration_hazard,
+        "is_energy_spike": is_energy_spike,
+        "hazard_status": hazard_status
+    }
+
+def compute_safety_worker_protection(workers, temp, safety_incidents, time_deviation):
+    """
+    Milestone 2: Computes Worker Shift Fatigue %, Safety Incident Probability %, and PPE/Rest Directives.
+    """
+    # Shift Fatigue Index (base 30% + temp penalty + time delay strain)
+    fatigue_score = 30.0 + (max(0, temp - 25.0) * 2.5) + (max(0, time_deviation) * 1.5)
+    fatigue_pct = min(100.0, max(10.0, fatigue_score))
+    
+    # Incident Probability % (0-100)
+    incident_prob = min(95.0, (safety_incidents * 20.0) + (fatigue_pct * 0.4))
+    
+    # Rest break guidelines
+    if fatigue_pct > 75.0 or temp > 36.0:
+        directive = "🚨 Mandatory 15-min rest break every hour & active cooling station required."
+        rest_freq = "15 mins / hour"
+    elif fatigue_pct > 50.0:
+        directive = "⚠️ Hydration checkpoints & mandatory shade breaks every 90 minutes."
+        rest_freq = "10 mins / 90 mins"
+    else:
+        directive = "✅ Routine shift schedule & standard PPE compliance."
+        rest_freq = "Standard breaks"
+
+    return {
+        "fatigue_pct": round(fatigue_pct, 1),
+        "incident_prob_pct": round(incident_prob, 1),
+        "directive": directive,
+        "rest_freq": rest_freq
+    }
+
+def compute_insurance_compliance_score(risk_score, safety_incidents, shortage_alert, cost_dev, time_dev):
+    """
+    Milestone 3: Computes OSHA/ISO 45001 Compliance %, Insurance Underwriting Grade (A+ to F), and Claims Severity.
+    """
+    # Compliance Score (100 - penalties)
+    compliance_score = 100.0 - (risk_score * 0.35) - (safety_incidents * 12.0) - (shortage_alert * 10.0)
+    compliance_pct = max(10.0, min(100.0, compliance_score))
+    
+    # Insurance Underwriting Rating Grade
+    if compliance_pct >= 90:
+        grade, multiplier, category = "A+", "0.85x (15% Premium Discount)", "PREFERRED RISK"
+    elif compliance_pct >= 80:
+        grade, multiplier, category = "A", "0.95x (5% Premium Discount)", "LOW RISK"
+    elif compliance_pct >= 70:
+        grade, multiplier, category = "B", "1.00x (Standard Rate)", "STANDARD RISK"
+    elif compliance_pct >= 55:
+        grade, multiplier, category = "C", "1.25x (25% Premium Surcharge)", "MODERATE RISK"
+    elif compliance_pct >= 40:
+        grade, multiplier, category = "D", "1.60x (60% Premium Surcharge)", "HIGH UNDERWRITING RISK"
+    else:
+        grade, multiplier, category = "F", "2.20x (Extreme Surcharge / High Risk)", "UNINSURABLE / HIGH HAZARD"
+
+    # Claims Severity Index
+    claims_severity = min(100.0, (max(0, cost_dev) / 200.0) + (safety_incidents * 25.0))
+
+    return {
+        "compliance_pct": round(compliance_pct, 1),
+        "underwriting_grade": grade,
+        "premium_multiplier": multiplier,
+        "risk_category": category,
+        "claims_severity_index": round(claims_severity, 1)
+    }
+
 def train_custom_models(df, target_col, selected_model_names, test_size=0.2, random_state=42):
     df_clean = df.copy().dropna()
     is_classification = df_clean[target_col].dtype == 'object' or df_clean[target_col].nunique() < 10

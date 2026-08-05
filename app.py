@@ -181,6 +181,9 @@ with st.sidebar:
         "Navigation Menu",
         [
             "📊 Executive Overview",
+            "⚠️ Site Risk & Hazard Detection",
+            "🦺 Safety & Worker Protection",
+            "📜 Compliance & Insurance Intelligence",
             "🔍 EDA & Analytics Studio",
             "🤖 ML Pipeline & Benchmark",
             "🎯 Real-Time Risk Predictor",
@@ -235,6 +238,18 @@ st.markdown("""
 if selected_page == "📊 Executive Overview":
     from app_modules.overview import render_overview_page
     render_overview_page(df)
+
+elif selected_page == "⚠️ Site Risk & Hazard Detection":
+    from app_modules.hazard_detection import render_hazard_detection_page
+    render_hazard_detection_page(df)
+
+elif selected_page == "🦺 Safety & Worker Protection":
+    from app_modules.safety_intelligence import render_safety_intelligence_page
+    render_safety_intelligence_page(df)
+
+elif selected_page == "📜 Compliance & Insurance Intelligence":
+    from app_modules.insurance_compliance import render_insurance_compliance_page
+    render_insurance_compliance_page(df, bundle)
 
 elif selected_page == "🔍 EDA & Analytics Studio":
     from app_modules.eda import render_eda_page
