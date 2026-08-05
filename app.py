@@ -183,6 +183,7 @@ with st.sidebar:
             "📊 Executive Overview",
             "⚠️ Site Risk & Hazard Detection",
             "🦺 Safety & Worker Protection",
+            "🚁 Drone AI & CV PPE Safety",
             "📜 Compliance & Insurance Intelligence",
             "🔍 EDA & Analytics Studio",
             "🤖 ML Pipeline & Benchmark",
@@ -246,6 +247,10 @@ elif selected_page == "⚠️ Site Risk & Hazard Detection":
 elif selected_page == "🦺 Safety & Worker Protection":
     from app_modules.safety_intelligence import render_safety_intelligence_page
     render_safety_intelligence_page(df)
+
+elif selected_page == "🚁 Drone AI & CV PPE Safety":
+    from app_modules.drone_cv_safety import render_drone_cv_safety_page
+    render_drone_cv_safety_page(df)
 
 elif selected_page == "📜 Compliance & Insurance Intelligence":
     from app_modules.insurance_compliance import render_insurance_compliance_page
