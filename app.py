@@ -4,8 +4,8 @@ from utils import load_dataset, load_model_bundle
 
 # Set Streamlit Page Config
 st.set_page_config(
-    page_title="Construction Intelligence Hub",
-    page_icon="🏗️",
+    page_title="Agentic AI Safety Monitoring With Construction Risk Analytics",
+    page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -49,7 +49,7 @@ st.markdown("""
     
     .hero-title {
         font-family: 'Outfit', sans-serif;
-        font-size: 2.6rem;
+        font-size: 2.4rem;
         font-weight: 800;
         background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
         -webkit-background-clip: text;
@@ -165,12 +165,12 @@ bundle = load_model_bundle()
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 10px 0 20px 0;">
-        <div style="font-size: 2.8rem; margin-bottom: 4px;">🏗️</div>
-        <div style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            CONSTRUCTION HUB
+        <div style="font-size: 2.8rem; margin-bottom: 4px;">🛡️</div>
+        <div style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            AGENTIC SAFETY AI
         </div>
-        <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;">
-            Intelligence & Risk Platform
+        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
+            Construction Risk Analytics
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -218,15 +218,15 @@ with st.sidebar:
         st.warning("Model Bundle Missing")
 
     st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0;'></div>", unsafe_allow_html=True)
-    st.caption("⚡ Powered by Machine Learning & Telemetry Analytics v2.0")
+    st.caption("⚡ Agentic AI Safety Monitoring v2.0")
 
 # Top Banner Header
 st.markdown("""
 <div class="hero-banner">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h1 class="hero-title">Construction Intelligence Hub</h1>
-            <p class="hero-subtitle">Predictive Site Risk Analytics • Telemetry Monitoring • AI Decision Engine</p>
+            <h1 class="hero-title">Agentic AI Safety Monitoring With Construction Risk Analytics</h1>
+            <p class="hero-subtitle">Autonomous Site Surveillance • Computer Vision PPE Inspection • Predictive Risk Analytics</p>
         </div>
         <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 16px; border-radius: 30px; font-size: 0.85rem; color: #38bdf8; font-weight: 700;">
             🟢 LIVE SYSTEM MONITOR

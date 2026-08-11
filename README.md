@@ -1,6 +1,6 @@
-# 🏗️ Construction Intelligence Hub - Machine Learning & 3D Digital Twin Platform
+# 🤖 Agentic AI Safety Monitoring With Construction Risk Analytics
 
-An end-to-end Machine Learning, Industrial Telemetry Analytics, 3D WebGL Digital Twin, and Risk Intelligence Platform for construction site safety, hazard detection, regulatory compliance, and insurance risk underwriting.
+An end-to-end Agentic AI, Computer Vision PPE Inspection, Industrial Telemetry Analytics, 3D WebGL Digital Twin, and Risk Intelligence Platform for construction site safety, hazard detection, regulatory compliance, and insurance risk underwriting.
 
 ---
 

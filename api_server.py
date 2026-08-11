@@ -27,7 +27,7 @@ class UnityAPIHandler(BaseHTTPRequestHandler):
             self._set_headers(200)
             res = {
                 "status": "online",
-                "service": "Construction Intelligence Hub API",
+                "service": "Agentic AI Safety Monitoring API",
                 "model_loaded": model_bundle is not None
             }
             self.wfile.write(json.dumps(res).encode('utf-8'))
@@ -44,7 +44,7 @@ class UnityAPIHandler(BaseHTTPRequestHandler):
                 data = json.loads(post_data.decode('utf-8')) if post_data else {}
                 
                 telemetry = {
-                    "timestamp": data.get("timestamp", "2026-08-03 12:00:00"),
+                    "timestamp": data.get("timestamp", "2026-08-11 12:00:00"),
                     "temperature": float(data.get("temperature", 25.0)),
                     "humidity": float(data.get("humidity", 65.0)),
                     "vibration_level": float(data.get("vibration_level", 25.0)),
@@ -102,7 +102,7 @@ class UnityAPIHandler(BaseHTTPRequestHandler):
 def run_server(port=8000):
     server_address = ('', port)
     httpd = HTTPServer(server_address, UnityAPIHandler)
-    print(f"🚀 Construction Intelligence API Server running on http://localhost:{port}...")
+    print(f"🚀 Agentic AI Safety Monitoring API Server running on http://localhost:{port}...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
