@@ -35,18 +35,14 @@ def save_worker_snapshot(frame_bgr, worker_id):
 
 def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     """
-    Analyzes a real-time frame with OpenCV HSV color heuristics,
-    Worker - Heavy Equipment Proximity Warning, and Bounding Box overlays.
+    Analyzes a real-time frame with OpenCV HSV color heuristics for
+    Hardhat (Helmet) and High-Vis Safety Vest.
     """
     h, w = frame.shape[:2]
     
     # Person detection region (Center focus for entry gate / surveillance)
     x1, y1 = int(w * 0.20), int(h * 0.15)
-    x2, y2 = int(w * 0.70), int(h * 0.85)
-    
-    # Heavy Equipment Hazard Zone (Crane / Excavator Footprint on right side of frame)
-    eq_x1, eq_y1 = int(w * 0.75), int(h * 0.20)
-    eq_x2, eq_y2 = int(w * 0.95), int(h * 0.80)
+    x2, y2 = int(w * 0.80), int(h * 0.85)
     
     person_crop = frame[y1:y2, x1:x2]
     crop_h, crop_w = person_crop.shape[:2]
@@ -86,31 +82,12 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
 
     ppe_status = {"helmet": has_helmet, "vest": has_vest}
     result = evaluate_ppe(ppe_status)
-    
-    # Calculate Worker - Heavy Equipment Proximity Distance
-    worker_center_x = (x1 + x2) // 2
-    worker_center_y = (y1 + y2) // 2
-    eq_center_x = (eq_x1 + eq_x2) // 2
-    eq_center_y = (eq_y1 + eq_y2) // 2
-    
-    pixel_dist = np.sqrt((worker_center_x - eq_center_x)**2 + (worker_center_y - eq_center_y)**2)
-    proximity_meters = round(pixel_dist / 120.0, 1) # Approx scale
-    is_proximity_hazard = proximity_meters < 2.5
 
     # Draw OpenCV bounding box and overlays
     annotated_frame = frame.copy()
     box_color = (16, 185, 129) if result["decision"] == "PASS" else (239, 68, 68) # BGR
-    
-    # 1. Draw Heavy Equipment Hazard Zone
-    cv2.rectangle(annotated_frame, (eq_x1, eq_y1), (eq_x2, eq_y2), (245, 158, 11)[::-1], 2) # Amber
-    cv2.putText(annotated_frame, "CRANE DANGER ZONE", (eq_x1 + 5, eq_y1 + 25), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (245, 158, 11)[::-1], 2)
-    
-    # 2. Draw Proximity Line between Worker & Crane
-    line_color = (239, 68, 68)[::-1] if is_proximity_hazard else (56, 189, 248)[::-1]
-    cv2.line(annotated_frame, (worker_center_x, worker_center_y), (eq_center_x, eq_center_y), line_color, 2)
-    cv2.putText(annotated_frame, f"Dist: {proximity_meters}m", ((worker_center_x + eq_center_x)//2, (worker_center_y + eq_center_y)//2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
 
-    # 3. Draw Worker Bounding Box (Green if PASS, Red if BLOCK)
+    # Draw Worker Bounding Box (Green if PASS, Red if BLOCK)
     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color[::-1], 3)
     
     # Overhead Label Tag: "Worker #1: WEAR HELMET!" if no helmet
@@ -129,15 +106,7 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     cv2.rectangle(annotated_frame, (0, 0), (w, 45), banner_color[::-1], -1)
     cv2.putText(annotated_frame, banner_text, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
     
-    # Return extra details for Agentic AI Reasoning
-    analysis_details = {
-        "proximity_meters": proximity_meters,
-        "is_proximity_hazard": is_proximity_hazard,
-        "has_helmet": has_helmet,
-        "has_vest": has_vest
-    }
-    
-    return annotated_frame, result, ppe_status, analysis_details
+    return annotated_frame, result, ppe_status
 
 def create_synthetic_inspection_frame(has_helmet=True, has_vest=True):
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -168,8 +137,8 @@ def render_agentic_entry_gate_page():
 
     st.markdown("""
     <div style="margin-bottom: 20px;">
-        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Real-Time Proximity Intelligence</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">Live Helmet Detection ("WEAR HELMET!"), Heavy Equipment Proximity Warning & Agentic AI Field Directives.</p>
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Real-Time Inspection</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Live Helmet Detection ("WEAR HELMET!"), Auto-Save Photos & Agentic AI Field Directives.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -205,6 +174,9 @@ def render_agentic_entry_gate_page():
                     img_path = os.path.join(SAVE_DIR, img_file)
                     with cols[idx % 4]:
                         st.image(img_path, use_container_width=True, caption=img_file)
+                        if st.button("🗑️ Delete", key=f"del_off_{img_file}_{idx}"):
+                            os.remove(img_path)
+                            st.rerun()
             else:
                 st.caption("No saved worker photos yet.")
         return
@@ -223,7 +195,6 @@ def render_agentic_entry_gate_page():
     annotated_frame = None
     result = None
     ppe_status = None
-    details = None
     saved_filepath = ""
 
     if source_mode == "🛡️ Safety Detection":
@@ -237,7 +208,7 @@ def render_agentic_entry_gate_page():
             frame_np = np.array(pil_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
             
-            annotated_frame, result, ppe_status, details = analyze_webcam_frame(frame_bgr)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
             
             # Auto-Save Worker Image Frame to disk
             curr_id = st.session_state.worker_counter
@@ -268,7 +239,7 @@ def render_agentic_entry_gate_page():
                     ret, frame = cap.read()
                     if not ret:
                         break
-                    annotated_frame, result, ppe_status, details = analyze_webcam_frame(frame)
+                    annotated_frame, result, ppe_status = analyze_webcam_frame(frame)
                     frame_placeholder.image(annotated_frame, channels="BGR", use_container_width=True)
                     time.sleep(0.03)
                     
@@ -293,10 +264,10 @@ def render_agentic_entry_gate_page():
             pil_img = Image.open(uploaded_file)
             frame_np = np.array(pil_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
-            annotated_frame, result, ppe_status, details = analyze_webcam_frame(frame_bgr)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
         else:
             synth_frame = create_synthetic_inspection_frame(test_h, test_v)
-            annotated_frame, result, ppe_status, details = analyze_webcam_frame(synth_frame)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(synth_frame)
 
         if st.button("📸 Capture & Auto-Save Worker Snapshot"):
             curr_id = st.session_state.worker_counter
@@ -307,7 +278,6 @@ def render_agentic_entry_gate_page():
     if result is None:
         ppe_status = {"helmet": True, "vest": True}
         result = evaluate_ppe(ppe_status)
-        details = {"proximity_meters": 3.2, "is_proximity_hazard": False, "has_helmet": True, "has_vest": True}
 
     # Log Events to SQLite Database with saved photo path
     worker_id = st.session_state.worker_counter - 1 if st.session_state.worker_counter > 1 else 1
@@ -349,9 +319,9 @@ def render_agentic_entry_gate_page():
 
     with k4:
         st.markdown(render_glass_card(
-            "Proximity Hazard", f"{details.get('proximity_meters', 2.5)}m",
-            "Crane Danger Distance", "🚜",
-            "linear-gradient(135deg, #ef4444 0%, #f87171 100%)" if details.get("is_proximity_hazard", False) else "linear-gradient(135deg, #10b981 0%, #34d399 100%)"
+            "High-Vis Vest", "DETECTED" if ppe_status["vest"] else "MISSING!",
+            "Torso Protection Check", "🦺",
+            "linear-gradient(135deg, #10b981 0%, #34d399 100%)" if ppe_status["vest"] else "linear-gradient(135deg, #ef4444 0%, #f87171 100%)"
         ), unsafe_allow_html=True)
 
     st.markdown("### 📡 Real-Time Live Detection & Surveillance Stream")
@@ -362,8 +332,7 @@ def render_agentic_entry_gate_page():
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     st.markdown("### 🧠 Agentic AI Safety Suggestions & Field Directives")
 
-    is_danger = not ppe_status["helmet"] or details.get("is_proximity_hazard", False)
-    
+    is_danger = not ppe_status["helmet"]
     agent_box_color = "rgba(239, 68, 68, 0.4)" if is_danger else "rgba(16, 185, 129, 0.4)"
     agent_title_color = "#ef4444" if is_danger else "#34d399"
 
@@ -378,32 +347,42 @@ def render_agentic_entry_gate_page():
             </div>
         </div>
         <div style="margin: 12px 0 6px 0; color: #f8fafc; font-size: 1.05rem; font-weight: 600;">
-            <strong>Reasoning Summary:</strong> worker_{worker_id} is located <code>{details.get('proximity_meters', 2.5)}m</code> from Active Crane Zone. {"Hardhat is MISSING ('WEAR HELMET!')." if not ppe_status['helmet'] else "Hardhat & Vest are properly worn."}
+            <strong>Reasoning Summary:</strong> worker_{worker_id} at Entry Gate. {"Hardhat is MISSING ('WEAR HELMET!')." if not ppe_status['helmet'] else "Hardhat & Vest are properly worn."}
         </div>
         <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 16px; margin-top: 10px; color: #38bdf8; font-weight: 600; font-size: 0.95rem;">
-            🎯 <strong>Recommended Field Action:</strong> {"Block entry gate, enforce mandatory hardhat wearing, notify site supervisor & pause crane boom operation." if is_danger else "Grant site entrance, permit normal construction activity."}
+            🎯 <strong>Recommended Field Action:</strong> {"Block entry gate, enforce mandatory hardhat wearing, notify site supervisor." if is_danger else "Grant site entrance, permit normal construction activity."}
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # Field Activity Safety Checklist
     st.markdown("#### 📋 Field Activity Safety & Compliance Directives")
-    s1, s2, s3 = st.columns(3)
+    s1, s2 = st.columns(2)
     with s1:
         st.checkbox("🪖 Hardhat Strap & Impact Liner Check", value=ppe_status["helmet"])
     with s2:
         st.checkbox("🦺 High-Vis Reflective Vest Check", value=ppe_status["vest"])
-    with s3:
-        st.checkbox("🚜 3.0m Heavy Machinery Safe Clearance", value=not details.get("is_proximity_hazard", False))
 
     if result["decision"] == "BLOCK":
         st.error(f"🚨 **ENTRY BLOCKED**: worker_{worker_id} missing {', '.join(result['missing_items'])}. Image and incident saved to SQLite database (`safety_events.db`).")
     else:
         st.success(f"✅ **ENTRY GRANTED**: worker_{worker_id} passed required hardhat and vest safety checks.")
 
-    # Render Saved Worker History Gallery
+    # Render Saved Worker History Gallery with Delete Buttons
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 📸 Auto-Saved Worker Photos & Inspection History")
+    
+    hdr_col1, hdr_col2 = st.columns([3, 1])
+    with hdr_col1:
+        st.markdown("### 📸 Auto-Saved Worker Photos & Inspection History")
+    with hdr_col2:
+        if os.path.exists(SAVE_DIR) and len(os.listdir(SAVE_DIR)) > 0:
+            if st.button("🗑️ Clear All Photos", type="secondary"):
+                for f in os.listdir(SAVE_DIR):
+                    if f.endswith(".jpg") or f.endswith(".png"):
+                        os.remove(os.path.join(SAVE_DIR, f))
+                st.session_state.worker_counter = 1
+                st.success("Deleted all saved worker photos!")
+                st.rerun()
 
     if os.path.exists(SAVE_DIR):
         files = sorted([f for f in os.listdir(SAVE_DIR) if f.endswith(".jpg") or f.endswith(".png")], reverse=True)
@@ -413,13 +392,19 @@ def render_agentic_entry_gate_page():
                 img_path = os.path.join(SAVE_DIR, img_file)
                 with cols[idx % 4]:
                     st.image(img_path, use_container_width=True, caption=img_file)
-                    with open(img_path, "rb") as file_bytes:
-                        st.download_button(
-                            label=f"📥 Download {img_file[:12]}...",
-                            data=file_bytes,
-                            file_name=img_file,
-                            mime="image/jpeg",
-                            key=f"dl_{img_file}_{idx}"
-                        )
+                    d_col1, d_col2 = st.columns([1, 1])
+                    with d_col1:
+                        with open(img_path, "rb") as file_bytes:
+                            st.download_button(
+                                label="📥 Save",
+                                data=file_bytes,
+                                file_name=img_file,
+                                mime="image/jpeg",
+                                key=f"dl_{img_file}_{idx}"
+                            )
+                    with d_col2:
+                        if st.button("🗑️ Delete", key=f"del_{img_file}_{idx}"):
+                            os.remove(img_path)
+                            st.rerun()
         else:
             st.caption("No saved worker photos yet. Take a photo or run live camera detection to auto-save!")
