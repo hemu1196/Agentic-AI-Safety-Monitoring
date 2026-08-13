@@ -95,6 +95,17 @@ def init_db():
         )
     """)
 
+    # Auto-migrate existing SQLite tables if photo_path column is missing
+    try:
+        cur.execute("ALTER TABLE workers ADD COLUMN photo_path TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cur.execute("ALTER TABLE ppe_events ADD COLUMN photo_path TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 
