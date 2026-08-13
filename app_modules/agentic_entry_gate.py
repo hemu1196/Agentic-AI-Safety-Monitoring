@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import sys
+import time
 from PIL import Image
 
 ENGINE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agentic_engine")
@@ -15,16 +16,16 @@ from safety.ppe_rules import evaluate_ppe
 from agent.action_router import route_all
 from utils import render_glass_card, apply_plotly_theme
 
-def analyze_webcam_frame(frame, sensitivity_ratio=0.05):
+def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     """
-    Analyzes a real-time webcam frame using OpenCV HSV color heuristic for
+    Analyzes a real-time frame using OpenCV HSV color heuristic for
     Safety Hardhat (Helmet) and High-Vis Safety Vest.
     """
     h, w = frame.shape[:2]
     
-    # Define person detection region (Center focus for entry gate)
-    x1, y1 = int(w * 0.25), int(h * 0.15)
-    x2, y2 = int(w * 0.75), int(h * 0.85)
+    # Person detection region (Center focus for entry gate)
+    x1, y1 = int(w * 0.20), int(h * 0.10)
+    x2, y2 = int(w * 0.80), int(h * 0.90)
     
     person_crop = frame[y1:y2, x1:x2]
     crop_h, crop_w = person_crop.shape[:2]
@@ -72,10 +73,10 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.05):
     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color[::-1], 3)
     
     label_text = f"Worker #101: PASS" if result["decision"] == "PASS" else f"Worker #101: BLOCK ({', '.join(result['missing_items'])})"
-    cv2.rectangle(annotated_frame, (x1, y1 - 35), (x1 + 320, y1), box_color[::-1], -1)
+    cv2.rectangle(annotated_frame, (x1, y1 - 35), (x1 + 330, y1), box_color[::-1], -1)
     cv2.putText(annotated_frame, label_text, (x1 + 10, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
     
-    # Gate Banner
+    # Top Gate Banner
     banner_color = (16, 185, 129) if result["decision"] == "PASS" else (239, 68, 68)
     banner_text = "PASS / ENTRY GRANTED" if result["decision"] == "PASS" else "BLOCK / ENTRY DENIED - WEAR HELMET & VEST!"
     cv2.rectangle(annotated_frame, (0, 0), (w, 45), banner_color[::-1], -1)
@@ -83,30 +84,65 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.05):
     
     return annotated_frame, result, ppe_status
 
+def create_synthetic_inspection_frame(has_helmet=True, has_vest=True):
+    """
+    Creates a high-resolution synthetic inspection image for site testing.
+    """
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    frame[:, :] = (30, 41, 59) # Slate dark background
+
+    # Gate Post Structure
+    cv2.rectangle(frame, (40, 40), (100, 440), (71, 85, 105), -1)
+    cv2.rectangle(frame, (540, 40), (600, 440), (71, 85, 105), -1)
+    cv2.putText(frame, "GATE CAM-01", (250, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (148, 163, 184), 2)
+
+    # Worker silhouette
+    cv2.circle(frame, (320, 160), 35, (255, 255, 255), -1)
+    cv2.rectangle(frame, (280, 195), (360, 380), (255, 255, 255), -1)
+
+    # Helmet Hardhat (Yellow / Green if present)
+    if has_helmet:
+        cv2.ellipse(frame, (320, 145), (38, 18), 0, 180, 360, (0, 255, 255), -1) # Yellow hardhat
+    else:
+        cv2.putText(frame, "NO HELMET!", (260, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+    # High-Vis Vest (Orange / Green if present)
+    if has_vest:
+        cv2.rectangle(frame, (288, 205), (352, 320), (0, 165, 255), -1) # Orange vest
+
+    return frame
+
 def render_agentic_entry_gate_page():
     init_db()
     
     st.markdown("""
     <div style="margin-bottom: 20px;">
-        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate — Live Webcam Stream</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Browser Webcam Streaming & Computer Vision PPE Inspection (PASS / BLOCK Gate Control).</p>
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Real-Time Inspection</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Safety Detection, Continuous Video Streaming & Automated PASS / BLOCK Gate Control.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    source_mode = st.radio("Select Video Input Source:", ["📷 Browser Webcam Input", "▶️ Continuous OpenCV Stream", "⚙️ Manual Test Simulator"], horizontal=True)
+    source_mode = st.radio(
+        "Select Inspection Mode:",
+        [
+            "🛡️ Safety Detection",
+            "▶️ Continuous OpenCV Stream",
+            "📸 Site Photo & Image Inspector"
+        ],
+        horizontal=True
+    )
 
     annotated_frame = None
     result = None
     ppe_status = None
 
-    if source_mode == "📷 Browser Webcam Input":
-        st.markdown("#### 📷 Browser Webcam Stream Inspection")
-        st.caption("Click 'Take Photo' or turn on your camera below to run live real-time detection on yourself!")
+    if source_mode == "🛡️ Safety Detection":
+        st.markdown("#### 🛡️ Live Safety Detection (Browser Camera)")
+        st.caption("Click 'Take Photo' or turn on your webcam below to run real-time AI PPE detection on yourself!")
         
-        webcam_photo = st.camera_input("Activate Browser Webcam")
+        webcam_photo = st.camera_input("Activate Live Safety Camera")
         
         if webcam_photo is not None:
-            # Convert uploaded PIL Image to OpenCV BGR numpy array
             pil_img = Image.open(webcam_photo)
             frame_np = np.array(pil_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
@@ -114,40 +150,58 @@ def render_agentic_entry_gate_page():
             annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
 
     elif source_mode == "▶️ Continuous OpenCV Stream":
-        st.markdown("#### ▶️ Continuous Local Camera Stream")
-        run_cam = st.checkbox("Start Live Webcam Feed", key="run_local_webcam")
+        st.markdown("#### ▶️ Continuous Live Camera Video Stream")
+        st.caption("Stream live video continuously from your built-in local webcam.")
+        
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            run_cam = st.checkbox("▶️ Start Live Stream", key="run_local_webcam_stream")
+        with c2:
+            cam_idx = st.number_input("Camera Index", 0, 3, 0)
         
         frame_placeholder = st.empty()
         
         if run_cam:
-            cap = cv2.VideoCapture(config.CAMERA_INDEX)
+            cap = cv2.VideoCapture(cam_idx)
             if not cap.isOpened():
-                st.error("Could not access local webcam (Camera Index 0). Please check device permissions.")
+                st.error(f"Could not open local camera at Index {cam_idx}. Please verify device connection.")
             else:
-                ret, frame = cap.read()
-                if ret:
+                # Continuous streaming loop
+                stop_stream = st.button("⏹️ Stop Stream")
+                for _ in range(50):
+                    if stop_stream:
+                        break
+                    ret, frame = cap.read()
+                    if not ret:
+                        st.error("Failed to read camera frame.")
+                        break
                     annotated_frame, result, ppe_status = analyze_webcam_frame(frame)
                     frame_placeholder.image(annotated_frame, channels="BGR", use_container_width=True)
+                    time.sleep(0.03)
                 cap.release()
 
-    else:
-        st.markdown("#### ⚙️ Manual PPE Rules Test Simulator")
-        c1, c2 = st.columns(2)
-        with c1:
-            test_h = st.checkbox("Worker Wearing Hardhat / Helmet", value=True)
-        with c2:
-            test_v = st.checkbox("Worker Wearing High-Vis Safety Vest", value=True)
-            
-        ppe_status = {"helmet": test_h, "vest": test_v}
-        result = evaluate_ppe(ppe_status)
+    else: # 📸 Site Photo & Image Inspector
+        st.markdown("#### 📸 Site Photo & Image Inspector")
+        st.caption("Upload a site photo or test preset scenarios to run AI PPE detection.")
+        
+        i1, i2 = st.columns([1, 1])
+        with i1:
+            test_h = st.checkbox("Simulate Hardhat / Helmet", value=True)
+            test_v = st.checkbox("Simulate High-Vis Vest", value=False)
+        with i2:
+            uploaded_file = st.file_uploader("Upload Construction Site Photo", type=["jpg", "png", "jpeg"])
 
-        # Synthetic Frame
-        frame_bgr = np.zeros((400, 650, 3), dtype=np.uint8)
-        frame_bgr[:, :] = (30, 41, 59)
-        annotated_frame, _, _ = analyze_webcam_frame(frame_bgr)
+        if uploaded_file is not None:
+            pil_img = Image.open(uploaded_file)
+            frame_np = np.array(pil_img)
+            frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
+        else:
+            synth_frame = create_synthetic_inspection_frame(test_h, test_v)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(synth_frame)
 
     if result is None:
-        # Default fallback result for UI display
+        # Fallback default result
         ppe_status = {"helmet": True, "vest": True}
         result = evaluate_ppe(ppe_status)
 
@@ -164,7 +218,7 @@ def render_agentic_entry_gate_page():
             log_alert(worker_id, d.event_type, d.severity)
             log_agent_action(worker_id, d.reasoning_summary, d.recommended_action, d.severity)
 
-    # Display Metrics & Banner Output
+    # Display Metrics Cards
     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
     k1, k2, k3, k4 = st.columns(4)
@@ -178,7 +232,7 @@ def render_agentic_entry_gate_page():
     with k2:
         st.markdown(render_glass_card(
             "PPE Compliance %", f"{result['compliance_pct']:.0f}%",
-            "Screening Accuracy Score", "🪖",
+            "Screening Score", "🪖",
             "linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)"
         ), unsafe_allow_html=True)
 
