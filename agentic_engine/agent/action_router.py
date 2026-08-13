@@ -30,9 +30,9 @@ def route_event(worker_id, violation: dict, repeat_count: int = 1) -> AgentDecis
     """Takes one violation dict (from ppe_rules.evaluate_ppe) and decides
     the recommended action, escalating if the same violation has repeated.
     """
-    v_type = violation["type"]
-    severity = violation["severity"]
-    action = violation["action"]
+    v_type = violation.get("type", "UNKNOWN_VIOLATION")
+    severity = violation.get("severity", "warning")
+    action = violation.get("action", f"Enforce {v_type} compliance at entry gate.")
 
     reasoning = f"Worker #{worker_id} triggered '{v_type}' (severity: {severity})."
 
@@ -55,6 +55,6 @@ def route_all(worker_id, violations: List[dict], repeat_counts: dict = None) -> 
     repeat_counts = repeat_counts or {}
     decisions = []
     for v in violations:
-        count = repeat_counts.get(v["type"], 1)
+        count = repeat_counts.get(v.get("type", ""), 1)
         decisions.append(route_event(worker_id, v, repeat_count=count))
     return decisions

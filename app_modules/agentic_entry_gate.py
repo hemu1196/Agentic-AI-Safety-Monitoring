@@ -163,7 +163,8 @@ def analyze_webcam_frame(frame, selected_color="All Colors", sensitivity_thresho
         for item in set(missing_items_all):
             violations_list.append({
                 "type": f"NO_{item.upper()}",
-                "severity": "high" if item == "helmet" else "warning"
+                "severity": "high" if item == "helmet" else "warning",
+                "action": f"Block entry gate until {item.title()} is equipped."
             })
 
     overall_result = {
