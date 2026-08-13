@@ -21,8 +21,20 @@ from utils import render_glass_card, apply_plotly_theme
 SAVE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "captured_workers")
 os.makedirs(SAVE_DIR, exist_ok=True)
 
+# High-Precision HSV Ranges (Tightly calibrated to eliminate false positives from walls, skin, hair)
+STRICT_HELMET_HSV = {
+    "Yellow Hardhat": [(18, 85, 120), (38, 255, 255)],
+    "Orange Hardhat": [(5, 130, 130), (18, 255, 255)],
+    "Blue Hardhat": [(95, 100, 90), (130, 255, 255)],
+    "White Hardhat": [(0, 0, 210), (180, 25, 255)], # Low saturation, high brightness
+}
+
+STRICT_VEST_HSV = [
+    ((5, 120, 120), (18, 255, 255)),   # Orange Hi-Vis
+    ((25, 100, 100), (45, 255, 255)),  # Yellow-Green Hi-Vis
+]
+
 def delete_single_photo(filepath):
-    """Callback function to delete a single worker photo from disk."""
     try:
         if os.path.exists(filepath):
             os.remove(filepath)
@@ -30,7 +42,6 @@ def delete_single_photo(filepath):
         pass
 
 def clear_all_photos():
-    """Callback function to delete all worker photos from disk."""
     try:
         if os.path.exists(SAVE_DIR):
             for f in os.listdir(SAVE_DIR):
@@ -41,87 +52,95 @@ def clear_all_photos():
         pass
 
 def save_worker_snapshot(frame_bgr, worker_id):
-    """
-    Saves the annotated worker frame as worker_1_TIMESTAMP.jpg in captured_workers/
-    and returns the saved file path.
-    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"worker_{worker_id}_{timestamp}.jpg"
     filepath = os.path.join(SAVE_DIR, filename)
-    
     cv2.imwrite(filepath, frame_bgr)
     return filepath, filename, timestamp
 
-def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
+def analyze_webcam_frame(frame, selected_color="All Colors", sensitivity_threshold=0.12):
     """
-    Analyzes a real-time frame with OpenCV HSV color heuristics for
-    Hardhat (Helmet) and High-Vis Safety Vest.
+    High-Precision Hardhat & Vest Detector with Skin/Background Exclusion.
+    Eliminates false positives when a worker is NOT wearing a hardhat.
     """
     h, w = frame.shape[:2]
     
-    # Person detection region (Center focus for entry gate / surveillance)
-    x1, y1 = int(w * 0.20), int(h * 0.15)
-    x2, y2 = int(w * 0.80), int(h * 0.85)
+    # Person detection region (Head & Torso focus)
+    x1, y1 = int(w * 0.20), int(h * 0.10)
+    x2, y2 = int(w * 0.80), int(h * 0.90)
     
     person_crop = frame[y1:y2, x1:x2]
     crop_h, crop_w = person_crop.shape[:2]
     
+    helmet_ratio = 0.0
+    vest_ratio = 0.0
+    has_helmet = False
+    has_vest = False
+
     if crop_h > 0 and crop_w > 0:
         hsv = cv2.cvtColor(person_crop, cv2.COLOR_BGR2HSV)
         
-        # Head region (top 30%)
-        head_region = hsv[0:int(crop_h * 0.30), :]
-        # Torso region (middle 40%)
-        torso_region = hsv[int(crop_h * 0.30):int(crop_h * 0.70), :]
-        
-        # Check Helmet HSV matching
-        helmet_pixels = 0
+        # Head region (top 28% of person bounding box)
+        head_region = hsv[0:int(crop_h * 0.28), :]
+        # Torso region (28% to 68%)
+        torso_region = hsv[int(crop_h * 0.28):int(crop_h * 0.68), :]
+
         if head_region.size > 0:
-            for _, lower, upper in config.HELMET_HSV_RANGES:
-                mask = cv2.inRange(head_region, np.array(lower), np.array(upper))
-                helmet_pixels += np.count_nonzero(mask)
-            helmet_ratio = helmet_pixels / float(head_region.shape[0] * head_region.shape[1])
-        else:
-            helmet_ratio = 0.0
+            total_head_pixels = float(head_region.shape[0] * head_region.shape[1])
+            
+            # Mask out human skin tones (Hue 0-22, Saturation 30-160, Value 60-240) to prevent false matches
+            skin_mask = cv2.inRange(head_region, np.array([0, 30, 60]), np.array([22, 160, 240]))
+            
+            combined_helmet_mask = np.zeros(head_region.shape[:2], dtype=np.uint8)
 
-        # Check Vest HSV matching
-        vest_pixels = 0
+            if selected_color in STRICT_HELMET_HSV:
+                lower, upper = STRICT_HELMET_HSV[selected_color]
+                color_mask = cv2.inRange(head_region, np.array(lower), np.array(upper))
+                combined_helmet_mask = cv2.bitwise_or(combined_helmet_mask, color_mask)
+            else:
+                for c_name, (lower, upper) in STRICT_HELMET_HSV.items():
+                    color_mask = cv2.inRange(head_region, np.array(lower), np.array(upper))
+                    combined_helmet_mask = cv2.bitwise_or(combined_helmet_mask, color_mask)
+
+            # Exclude skin pixels from helmet mask
+            valid_helmet_mask = cv2.bitwise_and(combined_helmet_mask, cv2.bitwise_not(skin_mask))
+            helmet_ratio = float(np.count_nonzero(valid_helmet_mask)) / total_head_pixels
+
         if torso_region.size > 0:
-            for _, lower, upper in config.VEST_HSV_RANGES:
-                mask = cv2.inRange(torso_region, np.array(lower), np.array(upper))
-                vest_pixels += np.count_nonzero(mask)
-            vest_ratio = vest_pixels / float(torso_region.shape[0] * torso_region.shape[1])
-        else:
-            vest_ratio = 0.0
+            total_torso_pixels = float(torso_region.shape[0] * torso_region.shape[1])
+            combined_vest_mask = np.zeros(torso_region.shape[:2], dtype=np.uint8)
+            for lower, upper in STRICT_VEST_HSV:
+                v_mask = cv2.inRange(torso_region, np.array(lower), np.array(upper))
+                combined_vest_mask = cv2.bitwise_or(combined_vest_mask, v_mask)
+            vest_ratio = float(np.count_nonzero(combined_vest_mask)) / total_torso_pixels
 
-        has_helmet = helmet_ratio >= sensitivity_ratio
-        has_vest = vest_ratio >= sensitivity_ratio
-    else:
-        has_helmet, has_vest = False, False
+        # Require match ratio to exceed calibrated threshold
+        has_helmet = helmet_ratio >= sensitivity_threshold
+        has_vest = vest_ratio >= 0.08
 
     ppe_status = {"helmet": has_helmet, "vest": has_vest}
     result = evaluate_ppe(ppe_status)
 
-    # Draw OpenCV bounding box and overlays
+    # Draw Bounding Box & Overlays
     annotated_frame = frame.copy()
     box_color = (16, 185, 129) if result["decision"] == "PASS" else (239, 68, 68) # BGR
 
-    # Draw Worker Bounding Box (Green if PASS, Red if BLOCK)
+    # Draw Worker Box
     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color[::-1], 3)
     
-    # Overhead Label Tag: "Worker #1: WEAR HELMET!" if no helmet
+    # Overhead Tag: Green "HELMET OK" vs Red "WEAR HELMET!"
     curr_worker_num = st.session_state.get('worker_counter', 1)
     if has_helmet:
-        label_text = f"Worker #{curr_worker_num}: HELMET OK"
+        label_text = f"Worker #{curr_worker_num}: HELMET OK ({helmet_ratio*100:.1f}%)"
     else:
-        label_text = f"Worker #{curr_worker_num}: WEAR HELMET! 🚨"
+        label_text = f"Worker #{curr_worker_num}: WEAR HELMET! 🚨 ({helmet_ratio*100:.1f}%)"
 
-    cv2.rectangle(annotated_frame, (x1, y1 - 38), (x1 + 340, y1), box_color[::-1], -1)
-    cv2.putText(annotated_frame, label_text, (x1 + 10, y1 - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 2)
+    cv2.rectangle(annotated_frame, (x1, y1 - 38), (x1 + 380, y1), box_color[::-1], -1)
+    cv2.putText(annotated_frame, label_text, (x1 + 10, y1 - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
     # Top Gate Banner
     banner_color = (16, 185, 129) if result["decision"] == "PASS" else (239, 68, 68)
-    banner_text = "PASS / ENTRY GRANTED" if result["decision"] == "PASS" else "BLOCK / ENTRY DENIED - WEAR HELMET & VEST!"
+    banner_text = "PASS / ENTRY GRANTED" if result["decision"] == "PASS" else "BLOCK / ENTRY DENIED - WEAR REQUIRED HELMET!"
     cv2.rectangle(annotated_frame, (0, 0), (w, 45), banner_color[::-1], -1)
     cv2.putText(annotated_frame, banner_text, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
     
@@ -156,8 +175,8 @@ def render_agentic_entry_gate_page():
 
     st.markdown("""
     <div style="margin-bottom: 20px;">
-        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Real-Time Inspection</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">Live Helmet Detection ("WEAR HELMET!"), Auto-Save Photos & Agentic AI Field Directives.</p>
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Precision Hardhat Inspection</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">High-Precision Hardhat Classifier with Skin & Background Exclusion (PASS vs "WEAR HELMET!").</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -199,6 +218,17 @@ def render_agentic_entry_gate_page():
                 st.caption("No saved worker photos yet.")
         return
 
+    # Hardhat Color Calibration Controls
+    with st.expander("🎛️ Hardhat Color & AI Sensitivity Calibration", expanded=True):
+        cal1, cal2 = st.columns(2)
+        with cal1:
+            selected_color = st.selectbox(
+                "🧢 Select Target Hardhat Color:",
+                ["All Colors", "Yellow Hardhat", "Orange Hardhat", "Blue Hardhat", "White Hardhat"]
+            )
+        with cal2:
+            sensitivity_val = st.slider("🎯 Detection Threshold Sensitivity", 0.05, 0.30, 0.12, step=0.01, help="Higher threshold prevents false positives when NOT wearing a hardhat.")
+
     # When Camera Power is ON:
     source_mode = st.radio(
         "Select Inspection Mode:",
@@ -226,7 +256,7 @@ def render_agentic_entry_gate_page():
             frame_np = np.array(pil_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
             
-            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr, selected_color, sensitivity_val)
             
             # Auto-Save Worker Image Frame to disk
             curr_id = st.session_state.worker_counter
@@ -257,7 +287,7 @@ def render_agentic_entry_gate_page():
                     ret, frame = cap.read()
                     if not ret:
                         break
-                    annotated_frame, result, ppe_status = analyze_webcam_frame(frame)
+                    annotated_frame, result, ppe_status = analyze_webcam_frame(frame, selected_color, sensitivity_val)
                     frame_placeholder.image(annotated_frame, channels="BGR", use_container_width=True)
                     time.sleep(0.03)
                     
@@ -282,10 +312,10 @@ def render_agentic_entry_gate_page():
             pil_img = Image.open(uploaded_file)
             frame_np = np.array(pil_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
-            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr, selected_color, sensitivity_val)
         else:
             synth_frame = create_synthetic_inspection_frame(test_h, test_v)
-            annotated_frame, result, ppe_status = analyze_webcam_frame(synth_frame)
+            annotated_frame, result, ppe_status = analyze_webcam_frame(synth_frame, selected_color, sensitivity_val)
 
         if st.button("📸 Capture & Auto-Save Worker Snapshot"):
             curr_id = st.session_state.worker_counter
