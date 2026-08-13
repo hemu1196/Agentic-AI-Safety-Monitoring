@@ -188,7 +188,7 @@ st.markdown("""
 df = load_dataset()
 bundle = load_model_bundle()
 
-# Sidebar Navigation Hub (All Boxes Visible, Zero Dropdowns)
+# Sidebar Navigation Hub
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 10px 0 16px 0;">
@@ -245,13 +245,13 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
         
-    if bundle is not None:
-        st.markdown(f"""
-        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 12px;">
-            <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; letter-spacing: 0.05em;">ML MODEL ENGINE</div>
-            <div style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{bundle.get('model_name', 'Trained Model')}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 12px;">
+        <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; letter-spacing: 0.05em;">AGENTIC SAFETY AI ENGINE</div>
+        <div style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">Agentic Safety Intelligence v2.0</div>
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Action Router & CV Vision Active</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0;'></div>", unsafe_allow_html=True)
     st.caption("⚡ Agentic AI Safety Command v2.0")
