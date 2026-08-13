@@ -158,10 +158,19 @@ def analyze_webcam_frame(frame, selected_color="All Colors", sensitivity_thresho
     cv2.rectangle(annotated_frame, (0, 0), (w, 45), banner_color[::-1], -1)
     cv2.putText(annotated_frame, banner_text, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
 
+    violations_list = []
+    if overall_decision == "BLOCK":
+        for item in set(missing_items_all):
+            violations_list.append({
+                "type": f"NO_{item.upper()}",
+                "severity": "high" if item == "helmet" else "warning"
+            })
+
     overall_result = {
         "decision": overall_decision,
         "compliance_pct": 100.0 if overall_decision == "PASS" else 50.0,
         "missing_items": list(set(missing_items_all)),
+        "violations": violations_list,
         "detected_workers": detected_workers
     }
 
@@ -360,13 +369,14 @@ def render_agentic_entry_gate_page():
         ppe_status = {"helmet": True, "vest": True}
         result = evaluate_ppe(ppe_status)
         result["detected_workers"] = [{"worker_label": "Worker #1", "decision": "PASS", "has_helmet": True, "has_vest": True}]
+        result["violations"] = []
 
     # Log Events to SQLite Database with saved photo path
     worker_id = st.session_state.worker_counter - 1 if st.session_state.worker_counter > 1 else 1
     upsert_worker(worker_id, result["decision"], photo_path=saved_filepath)
     log_ppe_event(worker_id, ppe_status, photo_path=saved_filepath)
 
-    if result["violations"]:
+    if result.get("violations"):
         for v in result["violations"]:
             log_violation(worker_id, v["type"], v["severity"], evidence=saved_filepath)
         decisions = route_all(worker_id, result["violations"])
