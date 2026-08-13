@@ -181,6 +181,9 @@ with st.sidebar:
         "Navigation Menu",
         [
             "📊 Executive Overview",
+            "🚪 Agentic Entry Safety Gate",
+            "🎥 Agentic Live Surveillance",
+            "📊 Agentic Safety DB & Analytics",
             "⚠️ Site Risk & Hazard Detection",
             "🦺 Safety & Worker Protection",
             "🚁 Drone AI & CV PPE Safety",
@@ -239,6 +242,18 @@ st.markdown("""
 if selected_page == "📊 Executive Overview":
     from app_modules.overview import render_overview_page
     render_overview_page(df)
+
+elif selected_page == "🚪 Agentic Entry Safety Gate":
+    from app_modules.agentic_entry_gate import render_agentic_entry_gate_page
+    render_agentic_entry_gate_page()
+
+elif selected_page == "🎥 Agentic Live Surveillance":
+    from app_modules.agentic_live_monitor import render_agentic_live_monitor_page
+    render_agentic_live_monitor_page()
+
+elif selected_page == "📊 Agentic Safety DB & Analytics":
+    from app_modules.agentic_analytics import render_agentic_analytics_page
+    render_agentic_analytics_page()
 
 elif selected_page == "⚠️ Site Risk & Hazard Detection":
     from app_modules.hazard_detection import render_hazard_detection_page
