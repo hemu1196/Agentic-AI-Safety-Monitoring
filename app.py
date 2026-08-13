@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End Aesthetics & Modern Glassmorphism CSS Design System
+# Custom High-End Aesthetics & Futuristic Glassmorphism Navigation CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
@@ -42,14 +42,14 @@ st.markdown("""
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 20px;
-        padding: 28px 36px;
-        margin-bottom: 28px;
+        padding: 24px 32px;
+        margin-bottom: 24px;
         box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
     }
     
     .hero-title {
         font-family: 'Outfit', sans-serif;
-        font-size: 2.4rem;
+        font-size: 2.3rem;
         font-weight: 800;
         background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
         -webkit-background-clip: text;
@@ -60,24 +60,43 @@ st.markdown("""
     
     .hero-subtitle {
         color: #94a3b8;
-        font-size: 1.05rem;
+        font-size: 1.02rem;
         font-weight: 400;
         margin-top: 6px;
     }
     
-    /* Custom Sidebar Styling */
+    /* Unique Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.95) !important;
-        backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(15, 23, 42, 0.96) !important;
+        backdrop-filter: blur(24px);
+        border-right: 1px solid rgba(56, 189, 248, 0.15);
     }
     
+    /* Glassmorphic Category Card Header */
+    .nav-category-header {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(129, 140, 248, 0.08) 100%);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-category-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #38bdf8;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
     /* Custom Radio Navigation Buttons */
     div[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background: rgba(30, 41, 59, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
-        padding: 10px 16px;
+        padding: 11px 16px;
         margin-bottom: 8px;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: #cbd5e1 !important;
@@ -85,12 +104,13 @@ st.markdown("""
     }
     
     div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background: rgba(56, 189, 248, 0.15);
-        border-color: rgba(56, 189, 248, 0.4);
-        transform: translateX(4px);
+        background: rgba(56, 189, 248, 0.18);
+        border-color: rgba(56, 189, 248, 0.5);
+        transform: translateX(6px);
         color: #38bdf8 !important;
+        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
     }
-    
+
     /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
@@ -145,15 +165,6 @@ st.markdown("""
         padding: 24px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
-    
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        background: rgba(30, 41, 59, 0.6) !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        color: #38bdf8 !important;
-        font-weight: 700 !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -161,67 +172,129 @@ st.markdown("""
 df = load_dataset()
 bundle = load_model_bundle()
 
-# Sidebar Navigation
+# Sidebar Navigation Hub
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; padding: 10px 0 20px 0;">
-        <div style="font-size: 2.8rem; margin-bottom: 4px;">🛡️</div>
-        <div style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    <div style="text-align: center; padding: 12px 0 18px 0;">
+        <div style="display: inline-block; background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%); padding: 12px; border-radius: 50%;">
+            <div style="font-size: 2.6rem;">🛡️</div>
+        </div>
+        <div style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 4px;">
             AGENTIC SAFETY AI
         </div>
-        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
-            Construction Risk Analytics
+        <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;">
+            Autonomous Command Hub v2.0
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 16px;'></div>", unsafe_allow_html=True)
     
-    selected_page = st.radio(
-        "Navigation Menu",
+    # Categorized Tactical Suite Selector
+    selected_suite = st.selectbox(
+        "🎯 Tactical Suite Hub:",
         [
-            "📊 Executive Overview",
-            "🚪 Agentic Entry Safety Gate",
-            "🎥 Agentic Live Surveillance",
-            "📊 Agentic Safety DB & Analytics",
-            "⚠️ Site Risk & Hazard Detection",
-            "🦺 Safety & Worker Protection",
-            "🚁 Drone AI & CV PPE Safety",
-            "📜 Compliance & Insurance Intelligence",
-            "🔍 EDA & Analytics Studio",
-            "🤖 ML Pipeline & Benchmark",
-            "🎯 Real-Time Risk Predictor",
-            "🌐 3D Digital Twin Viewer",
-            "📁 Batch CSV Predictor",
-            "⚡ What-If Site Simulator"
+            "🤖 Agentic Safety & Surveillance Suite",
+            "⚠️ Site Risk & Worker Protection Suite",
+            "🧠 Predictive ML & Simulation Studio",
+            "🌐 3D Digital Twin & Analytics Studio"
         ]
     )
-    
-    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0;'></div>", unsafe_allow_html=True)
-    st.markdown("### 📌 System Status")
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+    # Sub-Module Page Routing per Selected Suite
+    if selected_suite == "🤖 Agentic Safety & Surveillance Suite":
+        st.markdown("""
+        <div class="nav-category-header">
+            <div class="nav-category-title">🤖 Agentic Safety Modules</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Real-Time AI Vision & Gate Control</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        selected_page = st.radio(
+            "Select Module:",
+            [
+                "🚪 Agentic Entry Safety Gate",
+                "🎥 Agentic Live Surveillance",
+                "🚁 Drone AI & CV PPE Safety",
+                "📊 Agentic Safety DB & Analytics"
+            ]
+        )
+
+    elif selected_suite == "⚠️ Site Risk & Worker Protection Suite":
+        st.markdown("""
+        <div class="nav-category-header">
+            <div class="nav-category-title">⚠️ Risk & Protection Modules</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Hazard Alerts & Compliance Audits</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        selected_page = st.radio(
+            "Select Module:",
+            [
+                "📊 Executive Overview",
+                "⚠️ Site Risk & Hazard Detection",
+                "🦺 Safety & Worker Protection",
+                "📜 Compliance & Insurance Intelligence"
+            ]
+        )
+
+    elif selected_suite == "🧠 Predictive ML & Simulation Studio":
+        st.markdown("""
+        <div class="nav-category-header">
+            <div class="nav-category-title">🧠 Machine Learning Studio</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Inference, Training & Simulation</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        selected_page = st.radio(
+            "Select Module:",
+            [
+                "🎯 Real-Time Risk Predictor",
+                "🤖 ML Pipeline & Benchmark",
+                "📁 Batch CSV Predictor",
+                "⚡ What-If Site Simulator"
+            ]
+        )
+
+    else:
+        st.markdown("""
+        <div class="nav-category-header">
+            <div class="nav-category-title">🌐 Digital Twin & Analytics</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">WebGL 3D Site Model & Exploratory Data</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        selected_page = st.radio(
+            "Select Module:",
+            [
+                "🌐 3D Digital Twin Viewer",
+                "🔍 EDA & Analytics Studio"
+            ]
+        )
+
+    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("### 📌 System Health")
     
     if df is not None:
         st.markdown(f"""
-        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
-            <div style="font-size: 0.75rem; color: #34d399; font-weight: 700;">DATASET READY</div>
-            <div style="font-size: 0.9rem; color: #f8fafc; font-weight: 600;">{len(df):,} Telemetry Records</div>
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 8px;">
+            <div style="font-size: 0.72rem; color: #34d399; font-weight: 800; letter-spacing: 0.05em;">TELEMETRY DATASET</div>
+            <div style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{len(df):,} Active Records</div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        st.error("Dataset Missing")
         
     if bundle is not None:
         st.markdown(f"""
-        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 10px;">
-            <div style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">MODEL BUNDLE LOADED</div>
-            <div style="font-size: 0.9rem; color: #f8fafc; font-weight: 600;">{bundle.get('model_name', 'Trained Model')}</div>
+        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 12px;">
+            <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; letter-spacing: 0.05em;">ML MODEL ENGINE</div>
+            <div style="font-size: 0.95rem; color: #f8fafc; font-weight: 700;">{bundle.get('model_name', 'Trained Model')}</div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        st.warning("Model Bundle Missing")
 
-    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0;'></div>", unsafe_allow_html=True)
-    st.caption("⚡ Agentic AI Safety Monitoring v2.0")
+    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0;'></div>", unsafe_allow_html=True)
+    st.caption("⚡ Agentic AI Safety Command v2.0")
 
 # Top Banner Header
 st.markdown("""
@@ -231,7 +304,7 @@ st.markdown("""
             <h1 class="hero-title">Agentic AI Safety Monitoring With Construction Risk Analytics</h1>
             <p class="hero-subtitle">Autonomous Site Surveillance • Computer Vision PPE Inspection • Predictive Risk Analytics</p>
         </div>
-        <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 16px; border-radius: 30px; font-size: 0.85rem; color: #38bdf8; font-weight: 700;">
+        <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); padding: 8px 18px; border-radius: 30px; font-size: 0.85rem; color: #38bdf8; font-weight: 800;">
             🟢 LIVE SYSTEM MONITOR
         </div>
     </div>
