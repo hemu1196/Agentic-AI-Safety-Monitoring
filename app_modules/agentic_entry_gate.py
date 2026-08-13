@@ -130,11 +130,48 @@ def render_agentic_entry_gate_page():
 
     st.markdown("""
     <div style="margin-bottom: 20px;">
-        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Auto-Save Worker Photos</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Safety Detection, Auto-Saving Worker Photos (<code>worker_1_TIMESTAMP.jpg</code>) to SQLite Database.</p>
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Camera Power Control</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Safety Detection, Camera Power Switch (Battery Saver) & Auto-Save Worker Photos (<code>worker_1_TIMESTAMP.jpg</code>).</p>
     </div>
     """, unsafe_allow_html=True)
 
+    # Top Control Bar: Camera Power Switch (ON / OFF)
+    cp_col1, cp_col2 = st.columns([3, 2])
+    with cp_col1:
+        camera_power = st.toggle("🔌 Camera Power Switch (ON / OFF to Save Battery Charge)", value=True, key="camera_power_switch")
+    with cp_col2:
+        if camera_power:
+            st.markdown("<div style='background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 6px 16px; color: #34d399; font-weight: 700; font-size: 0.85rem; display: inline-block;'>🟢 CAMERA POWER: ON (AI Active)</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; padding: 6px 16px; color: #f87171; font-weight: 700; font-size: 0.85rem; display: inline-block;'>🔴 CAMERA POWER: OFF (Battery Saver Active)</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+    if not camera_power:
+        st.markdown("""
+        <div style="background: rgba(30, 41, 59, 0.7); border: 2px dashed rgba(239, 68, 68, 0.4); border-radius: 18px; padding: 32px; text-align: center; margin: 20px 0;">
+            <div style="font-size: 3rem; margin-bottom: 8px;">🔋🔌</div>
+            <div style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 800; color: #f87171;">CAMERA POWER SAVER IS ACTIVE</div>
+            <div style="color: #94a3b8; font-size: 0.95rem; margin-top: 6px;">Camera hardware and AI Computer Vision detection are switched OFF to conserve device battery power.</div>
+            <div style="margin-top: 14px; font-weight: 600; color: #38bdf8;">Toggle the "Camera Power Switch" ON above to resume live detection.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Show Saved Worker History Gallery even when camera power is OFF
+        st.markdown("### 📸 Auto-Saved Worker Photos & Inspection History")
+        if os.path.exists(SAVE_DIR):
+            files = sorted([f for f in os.listdir(SAVE_DIR) if f.endswith(".jpg") or f.endswith(".png")], reverse=True)
+            if files:
+                cols = st.columns(4)
+                for idx, img_file in enumerate(files[:8]):
+                    img_path = os.path.join(SAVE_DIR, img_file)
+                    with cols[idx % 4]:
+                        st.image(img_path, use_container_width=True, caption=img_file)
+            else:
+                st.caption("No saved worker photos yet.")
+        return
+
+    # When Camera Power is ON:
     source_mode = st.radio(
         "Select Inspection Mode:",
         [
