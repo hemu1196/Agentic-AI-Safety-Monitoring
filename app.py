@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End Aesthetics & Futuristic Glassmorphism Navigation CSS
+# Custom High-End Aesthetics & Futuristic Visual Box Navigation CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
@@ -69,46 +69,62 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background: rgba(15, 23, 42, 0.96) !important;
         backdrop-filter: blur(24px);
-        border-right: 1px solid rgba(56, 189, 248, 0.15);
+        border-right: 1px solid rgba(56, 189, 248, 0.2);
     }
     
-    /* Glassmorphic Category Card Header */
-    .nav-category-header {
-        background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(129, 140, 248, 0.08) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.25);
-        border-radius: 14px;
-        padding: 14px 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    /* Glowing Box Category Section Headers */
+    .sidebar-category-box {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-left: 4px solid #38bdf8;
+        border-radius: 12px;
+        padding: 10px 14px;
+        margin: 16px 0 10px 0;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
     }
 
-    .nav-category-title {
+    .sidebar-category-title {
         font-family: 'Outfit', sans-serif;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 800;
         color: #38bdf8;
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
-    /* Custom Radio Navigation Buttons */
+    /* Transform Streamlit Radio Items into Prominent Visual Box Cards */
+    div[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 6px;
+    }
+
     div[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 11px 16px;
-        margin-bottom: 8px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        color: #cbd5e1 !important;
-        font-weight: 600;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 14px !important;
+        padding: 12px 16px !important;
+        margin-bottom: 6px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        color: #f8fafc !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background: rgba(56, 189, 248, 0.18);
-        border-color: rgba(56, 189, 248, 0.5);
-        transform: translateX(6px);
-        color: #38bdf8 !important;
-        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(129, 140, 248, 0.2) 100%) !important;
+        border-color: #38bdf8 !important;
+        transform: translateY(-2px) scale(1.01) !important;
+        color: #ffffff !important;
+        box-shadow: 0 8px 24px rgba(56, 189, 248, 0.35) !important;
+    }
+
+    /* Highlight Active Selected Box */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
+        background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%) !important;
+        border-color: #7dd3fc !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45) !important;
     }
 
     /* Tab Styling */
@@ -172,11 +188,11 @@ st.markdown("""
 df = load_dataset()
 bundle = load_model_bundle()
 
-# Sidebar Navigation Hub
+# Sidebar Navigation Hub (All Boxes Visible, Zero Dropdowns)
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; padding: 12px 0 18px 0;">
-        <div style="display: inline-block; background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%); padding: 12px; border-radius: 50%;">
+    <div style="text-align: center; padding: 10px 0 16px 0;">
+        <div style="display: inline-block; background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%); padding: 10px; border-radius: 50%;">
             <div style="font-size: 2.6rem;">🛡️</div>
         </div>
         <div style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 4px;">
@@ -188,91 +204,35 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 12px;'></div>", unsafe_allow_html=True)
     
-    # Categorized Tactical Suite Selector
-    selected_suite = st.selectbox(
-        "🎯 Tactical Suite Hub:",
+    # Visible Box Radio Navigation
+    st.markdown("""
+    <div class="sidebar-category-box">
+        <div class="sidebar-category-title">🤖 AGENTIC SAFETY & CV SURVEILLANCE</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    selected_page = st.radio(
+        "Navigation Menu",
         [
-            "🤖 Agentic Safety & Surveillance Suite",
-            "⚠️ Site Risk & Worker Protection Suite",
-            "🧠 Predictive ML & Simulation Studio",
-            "🌐 3D Digital Twin & Analytics Studio"
-        ]
+            "🚪 Agentic Entry Safety Gate",
+            "🎥 Agentic Live Surveillance",
+            "🚁 Drone AI & CV PPE Safety",
+            "📊 Agentic Safety DB & Analytics",
+            "📊 Executive Overview",
+            "⚠️ Site Risk & Hazard Detection",
+            "🦺 Safety & Worker Protection",
+            "📜 Compliance & Insurance Intelligence",
+            "🎯 Real-Time Risk Predictor",
+            "🤖 ML Pipeline & Benchmark",
+            "📁 Batch CSV Predictor",
+            "⚡ What-If Site Simulator",
+            "🌐 3D Digital Twin Viewer",
+            "🔍 EDA & Analytics Studio"
+        ],
+        label_visibility="collapsed"
     )
-
-    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
-    # Sub-Module Page Routing per Selected Suite
-    if selected_suite == "🤖 Agentic Safety & Surveillance Suite":
-        st.markdown("""
-        <div class="nav-category-header">
-            <div class="nav-category-title">🤖 Agentic Safety Modules</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Real-Time AI Vision & Gate Control</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        selected_page = st.radio(
-            "Select Module:",
-            [
-                "🚪 Agentic Entry Safety Gate",
-                "🎥 Agentic Live Surveillance",
-                "🚁 Drone AI & CV PPE Safety",
-                "📊 Agentic Safety DB & Analytics"
-            ]
-        )
-
-    elif selected_suite == "⚠️ Site Risk & Worker Protection Suite":
-        st.markdown("""
-        <div class="nav-category-header">
-            <div class="nav-category-title">⚠️ Risk & Protection Modules</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Hazard Alerts & Compliance Audits</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        selected_page = st.radio(
-            "Select Module:",
-            [
-                "📊 Executive Overview",
-                "⚠️ Site Risk & Hazard Detection",
-                "🦺 Safety & Worker Protection",
-                "📜 Compliance & Insurance Intelligence"
-            ]
-        )
-
-    elif selected_suite == "🧠 Predictive ML & Simulation Studio":
-        st.markdown("""
-        <div class="nav-category-header">
-            <div class="nav-category-title">🧠 Machine Learning Studio</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">Inference, Training & Simulation</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        selected_page = st.radio(
-            "Select Module:",
-            [
-                "🎯 Real-Time Risk Predictor",
-                "🤖 ML Pipeline & Benchmark",
-                "📁 Batch CSV Predictor",
-                "⚡ What-If Site Simulator"
-            ]
-        )
-
-    else:
-        st.markdown("""
-        <div class="nav-category-header">
-            <div class="nav-category-title">🌐 Digital Twin & Analytics</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">WebGL 3D Site Model & Exploratory Data</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        selected_page = st.radio(
-            "Select Module:",
-            [
-                "🌐 3D Digital Twin Viewer",
-                "🔍 EDA & Analytics Studio"
-            ]
-        )
 
     st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0;'></div>", unsafe_allow_html=True)
     st.markdown("### 📌 System Health")
