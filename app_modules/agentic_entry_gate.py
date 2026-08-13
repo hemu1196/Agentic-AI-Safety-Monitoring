@@ -21,6 +21,25 @@ from utils import render_glass_card, apply_plotly_theme
 SAVE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "captured_workers")
 os.makedirs(SAVE_DIR, exist_ok=True)
 
+def delete_single_photo(filepath):
+    """Callback function to delete a single worker photo from disk."""
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception as e:
+        pass
+
+def clear_all_photos():
+    """Callback function to delete all worker photos from disk."""
+    try:
+        if os.path.exists(SAVE_DIR):
+            for f in os.listdir(SAVE_DIR):
+                if f.endswith(".jpg") or f.endswith(".png"):
+                    os.remove(os.path.join(SAVE_DIR, f))
+            st.session_state.worker_counter = 1
+    except Exception as e:
+        pass
+
 def save_worker_snapshot(frame_bgr, worker_id):
     """
     Saves the annotated worker frame as worker_1_TIMESTAMP.jpg in captured_workers/
@@ -172,11 +191,10 @@ def render_agentic_entry_gate_page():
                 cols = st.columns(4)
                 for idx, img_file in enumerate(files[:8]):
                     img_path = os.path.join(SAVE_DIR, img_file)
-                    with cols[idx % 4]:
-                        st.image(img_path, use_container_width=True, caption=img_file)
-                        if st.button("🗑️ Delete", key=f"del_off_{img_file}_{idx}"):
-                            os.remove(img_path)
-                            st.rerun()
+                    if os.path.exists(img_path):
+                        with cols[idx % 4]:
+                            st.image(img_path, use_container_width=True, caption=img_file)
+                            st.button("🗑️ Delete", key=f"del_off_{img_file}_{idx}", on_click=delete_single_photo, args=(img_path,))
             else:
                 st.caption("No saved worker photos yet.")
         return
@@ -370,7 +388,7 @@ def render_agentic_entry_gate_page():
     else:
         st.success(f"✅ **ENTRY GRANTED**: worker_{worker_id} passed required hardhat and vest safety checks.")
 
-    # Render Saved Worker History Gallery with Delete Buttons
+    # Render Saved Worker History Gallery with Callback Delete Buttons
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     hdr_col1, hdr_col2 = st.columns([3, 1])
@@ -378,13 +396,7 @@ def render_agentic_entry_gate_page():
         st.markdown("### 📸 Auto-Saved Worker Photos & Inspection History")
     with hdr_col2:
         if os.path.exists(SAVE_DIR) and len(os.listdir(SAVE_DIR)) > 0:
-            if st.button("🗑️ Clear All Photos", type="secondary"):
-                for f in os.listdir(SAVE_DIR):
-                    if f.endswith(".jpg") or f.endswith(".png"):
-                        os.remove(os.path.join(SAVE_DIR, f))
-                st.session_state.worker_counter = 1
-                st.success("Deleted all saved worker photos!")
-                st.rerun()
+            st.button("🗑️ Clear All Photos", type="secondary", on_click=clear_all_photos)
 
     if os.path.exists(SAVE_DIR):
         files = sorted([f for f in os.listdir(SAVE_DIR) if f.endswith(".jpg") or f.endswith(".png")], reverse=True)
@@ -392,21 +404,20 @@ def render_agentic_entry_gate_page():
             cols = st.columns(4)
             for idx, img_file in enumerate(files[:8]):
                 img_path = os.path.join(SAVE_DIR, img_file)
-                with cols[idx % 4]:
-                    st.image(img_path, use_container_width=True, caption=img_file)
-                    d_col1, d_col2 = st.columns([1, 1])
-                    with d_col1:
-                        with open(img_path, "rb") as file_bytes:
-                            st.download_button(
-                                label="📥 Save",
-                                data=file_bytes,
-                                file_name=img_file,
-                                mime="image/jpeg",
-                                key=f"dl_{img_file}_{idx}"
-                            )
-                    with d_col2:
-                        if st.button("🗑️ Delete", key=f"del_{img_file}_{idx}"):
-                            os.remove(img_path)
-                            st.rerun()
+                if os.path.exists(img_path):
+                    with cols[idx % 4]:
+                        st.image(img_path, use_container_width=True, caption=img_file)
+                        d_col1, d_col2 = st.columns([1, 1])
+                        with d_col1:
+                            with open(img_path, "rb") as file_bytes:
+                                st.download_button(
+                                    label="📥 Save",
+                                    data=file_bytes,
+                                    file_name=img_file,
+                                    mime="image/jpeg",
+                                    key=f"dl_{img_file}_{idx}"
+                                )
+                        with d_col2:
+                            st.button("🗑️ Delete", key=f"del_{img_file}_{idx}", on_click=delete_single_photo, args=(img_path,))
         else:
             st.caption("No saved worker photos yet. Take a photo or run live camera detection to auto-save!")
