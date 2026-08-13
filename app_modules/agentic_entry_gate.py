@@ -330,38 +330,40 @@ def render_agentic_entry_gate_page():
 
     # Render Agentic AI Alert & Field Safety Directives Panel
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-    st.markdown("### 🧠 Agentic AI Safety Suggestions & Field Directives")
+    st.markdown("### 🧠 Agentic AI Alert & Recommended Field Safety Directives")
 
-    is_danger = not ppe_status["helmet"]
-    agent_box_color = "rgba(239, 68, 68, 0.4)" if is_danger else "rgba(16, 185, 129, 0.4)"
+    is_danger = not ppe_status["helmet"] or not ppe_status["vest"]
+    agent_box_color = "rgba(239, 68, 68, 0.45)" if is_danger else "rgba(16, 185, 129, 0.45)"
     agent_title_color = "#ef4444" if is_danger else "#34d399"
 
     st.markdown(f"""
-    <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid {agent_box_color}; border-radius: 16px; padding: 22px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+    <div style="background: rgba(30, 41, 59, 0.75); border: 1.5px solid {agent_box_color}; border-radius: 16px; padding: 22px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 800; color: {agent_title_color};">
-                {"🚨 CRITICAL SAFETY ALERT: ACTION REQUIRED" if is_danger else "🟢 SITE FIELD STATUS: SAFE OPTIMAL"}
+                {"🚨 AGENTIC AI HIGH VIOLATION ALERT: IMMEDIATE ACTION REQUIRED" if is_danger else "🟢 AGENTIC AI SAFETY ALERT: ACCESS PASSED & CLEAR"}
             </div>
             <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; color: #38bdf8; font-weight: 700;">
-                AGENTIC AI REASONER ACTIVE
+                AGENTIC ACTION ROUTER ACTIVE
             </div>
         </div>
-        <div style="margin: 12px 0 6px 0; color: #f8fafc; font-size: 1.05rem; font-weight: 600;">
-            <strong>Reasoning Summary:</strong> worker_{worker_id} at Entry Gate. {"Hardhat is MISSING ('WEAR HELMET!')." if not ppe_status['helmet'] else "Hardhat & Vest are properly worn."}
+        <div style="margin: 12px 0 8px 0; color: #f8fafc; font-size: 1.05rem; font-weight: 600;">
+            <strong>Autonomous Reasoning Summary:</strong> worker_{worker_id} scanned at CAM-01 Entry Gate. {"Hardhat is MISSING ('WEAR HELMET!')." if not ppe_status['helmet'] else "Hardhat is properly DETECTED."} {"High-Vis Vest is MISSING." if not ppe_status['vest'] else "High-Vis Vest is DETECTED."}
         </div>
-        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 16px; margin-top: 10px; color: #38bdf8; font-weight: 600; font-size: 0.95rem;">
-            🎯 <strong>Recommended Field Action:</strong> {"Block entry gate, enforce mandatory hardhat wearing, notify site supervisor." if is_danger else "Grant site entrance, permit normal construction activity."}
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px 18px; margin-top: 10px; color: #38bdf8; font-weight: 600; font-size: 0.95rem;">
+            🎯 <strong>Agentic AI Recommended Action:</strong> {"BLOCK Entry Gate barrier arm #1, sound audio alert siren, dispatch Safety Supervisor, enforce mandatory hardhat wearing before granting site entrance." if is_danger else "Grant site entrance, open Gate barrier arm #1, permit normal construction field activity."}
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Field Activity Safety Checklist
+    # Field Activity Safety Checklist & Directives
     st.markdown("#### 📋 Field Activity Safety & Compliance Directives")
-    s1, s2 = st.columns(2)
+    s1, s2, s3 = st.columns(3)
     with s1:
         st.checkbox("🪖 Hardhat Strap & Impact Liner Check", value=ppe_status["helmet"])
     with s2:
         st.checkbox("🦺 High-Vis Reflective Vest Check", value=ppe_status["vest"])
+    with s3:
+        st.checkbox("📜 OSHA 1926.100 Field Protocol Verified", value=result["decision"] == "PASS")
 
     if result["decision"] == "BLOCK":
         st.error(f"🚨 **ENTRY BLOCKED**: worker_{worker_id} missing {', '.join(result['missing_items'])}. Image and incident saved to SQLite database (`safety_events.db`).")
