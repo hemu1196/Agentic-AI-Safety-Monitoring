@@ -4,6 +4,7 @@ import numpy as np
 import os
 import sys
 import time
+from datetime import datetime
 from PIL import Image
 
 ENGINE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agentic_engine")
@@ -11,10 +12,26 @@ if ENGINE_PATH not in sys.path:
     sys.path.append(ENGINE_PATH)
 
 import config
-from database.db import init_db, upsert_worker, log_ppe_event, log_violation, log_alert, log_agent_action
+from database.db import init_db, upsert_worker, log_ppe_event, log_violation, log_alert, log_agent_action, get_connection
 from safety.ppe_rules import evaluate_ppe
 from agent.action_router import route_all
 from utils import render_glass_card, apply_plotly_theme
+
+# Ensure captured_workers directory exists
+SAVE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "captured_workers")
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+def save_worker_snapshot(frame_bgr, worker_id):
+    """
+    Saves the annotated worker frame as worker_1_TIMESTAMP.jpg in captured_workers/
+    and returns the saved file path.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"worker_{worker_id}_{timestamp}.jpg"
+    filepath = os.path.join(SAVE_DIR, filename)
+    
+    cv2.imwrite(filepath, frame_bgr)
+    return filepath, filename, timestamp
 
 def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     """
@@ -72,8 +89,8 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     
     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color[::-1], 3)
     
-    label_text = f"Worker #101: PASS" if result["decision"] == "PASS" else f"Worker #101: BLOCK ({', '.join(result['missing_items'])})"
-    cv2.rectangle(annotated_frame, (x1, y1 - 35), (x1 + 330, y1), box_color[::-1], -1)
+    label_text = f"Worker #{st.session_state.get('worker_counter', 1)}: PASS" if result["decision"] == "PASS" else f"Worker #{st.session_state.get('worker_counter', 1)}: BLOCK ({', '.join(result['missing_items'])})"
+    cv2.rectangle(annotated_frame, (x1, y1 - 35), (x1 + 340, y1), box_color[::-1], -1)
     cv2.putText(annotated_frame, label_text, (x1 + 10, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
     
     # Top Gate Banner
@@ -85,28 +102,21 @@ def analyze_webcam_frame(frame, sensitivity_ratio=0.04):
     return annotated_frame, result, ppe_status
 
 def create_synthetic_inspection_frame(has_helmet=True, has_vest=True):
-    """
-    Creates a high-resolution synthetic inspection image for site testing.
-    """
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame[:, :] = (30, 41, 59) # Slate dark background
 
-    # Gate Post Structure
     cv2.rectangle(frame, (40, 40), (100, 440), (71, 85, 105), -1)
     cv2.rectangle(frame, (540, 40), (600, 440), (71, 85, 105), -1)
     cv2.putText(frame, "GATE CAM-01", (250, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (148, 163, 184), 2)
 
-    # Worker silhouette
     cv2.circle(frame, (320, 160), 35, (255, 255, 255), -1)
     cv2.rectangle(frame, (280, 195), (360, 380), (255, 255, 255), -1)
 
-    # Helmet Hardhat (Yellow / Green if present)
     if has_helmet:
         cv2.ellipse(frame, (320, 145), (38, 18), 0, 180, 360, (0, 255, 255), -1) # Yellow hardhat
     else:
         cv2.putText(frame, "NO HELMET!", (260, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-    # High-Vis Vest (Orange / Green if present)
     if has_vest:
         cv2.rectangle(frame, (288, 205), (352, 320), (0, 165, 255), -1) # Orange vest
 
@@ -115,10 +125,13 @@ def create_synthetic_inspection_frame(has_helmet=True, has_vest=True):
 def render_agentic_entry_gate_page():
     init_db()
     
+    if "worker_counter" not in st.session_state:
+        st.session_state.worker_counter = 1
+
     st.markdown("""
     <div style="margin-bottom: 20px;">
-        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Real-Time Inspection</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Safety Detection, Continuous Video Streaming & Automated PASS / BLOCK Gate Control.</p>
+        <h2 style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #f8fafc; margin: 0;">🚪 Agentic Entry Safety Gate & Auto-Save Worker Photos</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem;">Real-Time Safety Detection, Auto-Saving Worker Photos (<code>worker_1_TIMESTAMP.jpg</code>) to SQLite Database.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -135,10 +148,11 @@ def render_agentic_entry_gate_page():
     annotated_frame = None
     result = None
     ppe_status = None
+    saved_filepath = ""
 
     if source_mode == "🛡️ Safety Detection":
         st.markdown("#### 🛡️ Live Safety Detection (Browser Camera)")
-        st.caption("Click 'Take Photo' or turn on your webcam below to run real-time AI PPE detection on yourself!")
+        st.caption("Click 'Take Photo' below to run real-time AI PPE detection and automatically save worker photos as `worker_1`, `worker_2`...")
         
         webcam_photo = st.camera_input("Activate Live Safety Camera")
         
@@ -148,10 +162,15 @@ def render_agentic_entry_gate_page():
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
             
             annotated_frame, result, ppe_status = analyze_webcam_frame(frame_bgr)
+            
+            # Auto-Save Worker Image Frame to disk
+            curr_id = st.session_state.worker_counter
+            saved_filepath, filename, ts = save_worker_snapshot(annotated_frame, curr_id)
+            st.session_state.worker_counter += 1
 
     elif source_mode == "▶️ Continuous OpenCV Stream":
         st.markdown("#### ▶️ Continuous Live Camera Video Stream")
-        st.caption("Stream live video continuously from your built-in local webcam.")
+        st.caption("Stream live video continuously from local webcam and capture worker snapshots.")
         
         c1, c2 = st.columns([2, 1])
         with c1:
@@ -164,25 +183,28 @@ def render_agentic_entry_gate_page():
         if run_cam:
             cap = cv2.VideoCapture(cam_idx)
             if not cap.isOpened():
-                st.error(f"Could not open local camera at Index {cam_idx}. Please verify device connection.")
+                st.error(f"Could not open local camera at Index {cam_idx}.")
             else:
-                # Continuous streaming loop
                 stop_stream = st.button("⏹️ Stop Stream")
-                for _ in range(50):
+                for _ in range(30):
                     if stop_stream:
                         break
                     ret, frame = cap.read()
                     if not ret:
-                        st.error("Failed to read camera frame.")
                         break
                     annotated_frame, result, ppe_status = analyze_webcam_frame(frame)
                     frame_placeholder.image(annotated_frame, channels="BGR", use_container_width=True)
                     time.sleep(0.03)
+                    
+                if annotated_frame is not None:
+                    curr_id = st.session_state.worker_counter
+                    saved_filepath, filename, ts = save_worker_snapshot(annotated_frame, curr_id)
+                    st.session_state.worker_counter += 1
                 cap.release()
 
     else: # 📸 Site Photo & Image Inspector
         st.markdown("#### 📸 Site Photo & Image Inspector")
-        st.caption("Upload a site photo or test preset scenarios to run AI PPE detection.")
+        st.caption("Upload site photo or simulate worker inspection and auto-save snapshot.")
         
         i1, i2 = st.columns([1, 1])
         with i1:
@@ -200,19 +222,24 @@ def render_agentic_entry_gate_page():
             synth_frame = create_synthetic_inspection_frame(test_h, test_v)
             annotated_frame, result, ppe_status = analyze_webcam_frame(synth_frame)
 
+        if st.button("📸 Capture & Auto-Save Worker Snapshot"):
+            curr_id = st.session_state.worker_counter
+            saved_filepath, filename, ts = save_worker_snapshot(annotated_frame, curr_id)
+            st.session_state.worker_counter += 1
+            st.success(f"💾 Saved worker snapshot as `{filename}` in `captured_workers/`!")
+
     if result is None:
-        # Fallback default result
         ppe_status = {"helmet": True, "vest": True}
         result = evaluate_ppe(ppe_status)
 
-    # Log Events to SQLite Database
-    worker_id = 101
-    upsert_worker(worker_id, result["decision"])
-    log_ppe_event(worker_id, ppe_status)
+    # Log Events to SQLite Database with saved photo path
+    worker_id = st.session_state.worker_counter - 1 if st.session_state.worker_counter > 1 else 1
+    upsert_worker(worker_id, result["decision"], photo_path=saved_filepath)
+    log_ppe_event(worker_id, ppe_status, photo_path=saved_filepath)
 
     if result["violations"]:
         for v in result["violations"]:
-            log_violation(worker_id, v["type"], v["severity"])
+            log_violation(worker_id, v["type"], v["severity"], evidence=saved_filepath)
         decisions = route_all(worker_id, result["violations"])
         for d in decisions:
             log_alert(worker_id, d.event_type, d.severity)
@@ -225,7 +252,7 @@ def render_agentic_entry_gate_page():
     with k1:
         st.markdown(render_glass_card(
             "Gate Decision", result["decision"],
-            "Entry Access Status", "🚪",
+            f"Worker worker_{worker_id}", "🚪",
             "linear-gradient(135deg, #10b981 0%, #34d399 100%)" if result["decision"] == "PASS" else "linear-gradient(135deg, #ef4444 0%, #f87171 100%)"
         ), unsafe_allow_html=True)
         
@@ -252,9 +279,35 @@ def render_agentic_entry_gate_page():
 
     st.markdown("### 📡 Live Detection Stream")
     if annotated_frame is not None:
-        st.image(annotated_frame, channels="BGR", use_container_width=True, caption="Real-Time Computer Vision Annotated Feed")
+        st.image(annotated_frame, channels="BGR", use_container_width=True, caption=f"Real-Time Inspection Stream (worker_{worker_id})")
+
+    if saved_filepath and os.path.exists(saved_filepath):
+        st.info(f"📁 **Auto-Saved Image**: `{saved_filepath}`")
 
     if result["decision"] == "BLOCK":
-        st.error(f"🚨 **ENTRY BLOCKED**: Worker #{worker_id} missing {', '.join(result['missing_items'])}. Incident logged to SQLite database (`safety_events.db`).")
+        st.error(f"🚨 **ENTRY BLOCKED**: worker_{worker_id} missing {', '.join(result['missing_items'])}. Image and incident saved to SQLite database (`safety_events.db`).")
     else:
-        st.success(f"✅ **ENTRY GRANTED**: Worker #{worker_id} passed required hardhat and vest safety checks.")
+        st.success(f"✅ **ENTRY GRANTED**: worker_{worker_id} passed required hardhat and vest safety checks.")
+
+    # Render Saved Worker History Gallery
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown("### 📸 Auto-Saved Worker Photos & Inspection History")
+
+    if os.path.exists(SAVE_DIR):
+        files = sorted([f for f in os.listdir(SAVE_DIR) if f.endswith(".jpg") or f.endswith(".png")], reverse=True)
+        if files:
+            cols = st.columns(4)
+            for idx, img_file in enumerate(files[:8]):
+                img_path = os.path.join(SAVE_DIR, img_file)
+                with cols[idx % 4]:
+                    st.image(img_path, use_container_width=True, caption=img_file)
+                    with open(img_path, "rb") as file_bytes:
+                        st.download_button(
+                            label=f"📥 Download {img_file[:12]}...",
+                            data=file_bytes,
+                            file_name=img_file,
+                            mime="image/jpeg",
+                            key=f"dl_{img_file}_{idx}"
+                        )
+        else:
+            st.caption("No saved worker photos yet. Take a photo or run live camera detection to auto-save!")

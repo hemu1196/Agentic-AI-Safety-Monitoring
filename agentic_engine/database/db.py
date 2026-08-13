@@ -26,7 +26,8 @@ def init_db():
             identifier TEXT,
             entry_time TEXT,
             exit_time TEXT,
-            current_status TEXT
+            current_status TEXT,
+            photo_path TEXT
         )
     """)
 
@@ -40,7 +41,8 @@ def init_db():
             shoes INTEGER,
             gloves INTEGER,
             harness INTEGER,
-            camera_id TEXT
+            camera_id TEXT,
+            photo_path TEXT
         )
     """)
 
@@ -97,57 +99,58 @@ def init_db():
     conn.close()
 
 
-def upsert_worker(worker_id, status, camera_id="CAM-01"):
+def upsert_worker(worker_id, status, camera_id="CAM-01", photo_path=""):
     conn = get_connection()
-    now = datetime.utcnow().isoformat()
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     existing = conn.execute(
         "SELECT worker_id FROM workers WHERE worker_id = ?", (worker_id,)
     ).fetchone()
     if existing:
         conn.execute(
-            "UPDATE workers SET current_status = ? WHERE worker_id = ?",
-            (status, worker_id),
+            "UPDATE workers SET current_status = ?, photo_path = ? WHERE worker_id = ?",
+            (status, photo_path, worker_id),
         )
     else:
         conn.execute(
-            "INSERT INTO workers (worker_id, identifier, entry_time, current_status) "
-            "VALUES (?, ?, ?, ?)",
-            (worker_id, f"Worker #{worker_id}", now, status),
+            "INSERT INTO workers (worker_id, identifier, entry_time, current_status, photo_path) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (worker_id, f"worker_{worker_id}", now, status, photo_path),
         )
     conn.commit()
     conn.close()
 
 
-def log_ppe_event(worker_id, ppe_status: dict, camera_id="CAM-01"):
+def log_ppe_event(worker_id, ppe_status: dict, camera_id="CAM-01", photo_path=""):
     conn = get_connection()
     conn.execute(
         """
         INSERT INTO ppe_events (worker_id, timestamp, helmet, vest, shoes,
-                                 gloves, harness, camera_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                 gloves, harness, camera_id, photo_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            worker_id, datetime.utcnow().isoformat(),
+            worker_id, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             int(ppe_status.get("helmet", False)),
             int(ppe_status.get("vest", False)),
             int(ppe_status.get("shoes", False)),
             int(ppe_status.get("gloves", False)),
             int(ppe_status.get("harness", False)),
             camera_id,
+            photo_path,
         ),
     )
     conn.commit()
     conn.close()
 
 
-def log_violation(worker_id, v_type, severity, camera_id="CAM-01", location="Entry Gate"):
+def log_violation(worker_id, v_type, severity, camera_id="CAM-01", location="Entry Gate", evidence=""):
     conn = get_connection()
     conn.execute(
         """
-        INSERT INTO violations (worker_id, type, severity, timestamp, camera_id, location)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO violations (worker_id, type, severity, timestamp, camera_id, location, evidence)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (worker_id, v_type, severity, datetime.utcnow().isoformat(), camera_id, location),
+        (worker_id, v_type, severity, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), camera_id, location, evidence),
     )
     conn.commit()
     conn.close()
@@ -160,72 +163,24 @@ def log_alert(worker_id, v_type, severity):
         INSERT INTO alerts (worker_id, type, severity, timestamp, status)
         VALUES (?, ?, ?, ?, 'open')
         """,
-        (worker_id, v_type, severity, datetime.utcnow().isoformat()),
+        (worker_id, v_type, severity, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")),
     )
     conn.commit()
     conn.close()
 
 
-def log_agent_action(worker_id, reasoning, action, severity):
+def log_agent_action(worker_id, reasoning, action, severity, event_id=None):
     conn = get_connection()
     conn.execute(
         """
-        INSERT INTO agent_actions (worker_id, reasoning_summary, recommended_action,
-                                    severity, timestamp, outcome)
-        VALUES (?, ?, ?, ?, ?, 'pending')
+        INSERT INTO agent_actions (event_id, worker_id, reasoning_summary,
+                                   recommended_action, severity, timestamp, outcome)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending')
         """,
-        (worker_id, reasoning, action, severity, datetime.utcnow().isoformat()),
+        (
+            event_id, worker_id, reasoning, action, severity,
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        ),
     )
     conn.commit()
     conn.close()
-
-
-def acknowledge_alert(alert_id, acknowledged_by="supervisor"):
-    conn = get_connection()
-    conn.execute(
-        "UPDATE alerts SET status = 'acknowledged', acknowledged_by = ? WHERE alert_id = ?",
-        (acknowledged_by, alert_id),
-    )
-    conn.commit()
-    conn.close()
-
-
-def get_open_alerts(limit=20):
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM alerts WHERE status = 'open' ORDER BY alert_id DESC LIMIT ?",
-        (limit,),
-    ).fetchall()
-    conn.close()
-    return rows
-
-
-def get_recent_violations(limit=20):
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM violations ORDER BY violation_id DESC LIMIT ?", (limit,)
-    ).fetchall()
-    conn.close()
-    return rows
-
-
-def get_analytics_summary():
-    conn = get_connection()
-    total_workers = conn.execute("SELECT COUNT(*) c FROM workers").fetchone()["c"]
-    critical = conn.execute(
-        "SELECT COUNT(*) c FROM violations WHERE severity = 'critical'"
-    ).fetchone()["c"]
-    high = conn.execute(
-        "SELECT COUNT(*) c FROM violations WHERE severity = 'high'"
-    ).fetchone()["c"]
-    avg_compliance_row = conn.execute(
-        "SELECT AVG(helmet + vest) * 50 AS avg_c FROM ppe_events"
-    ).fetchone()
-    avg_compliance = round(avg_compliance_row["avg_c"], 1) if avg_compliance_row["avg_c"] else 0
-    conn.close()
-    return {
-        "total_workers": total_workers,
-        "critical_incidents": critical,
-        "high_risk_events": high,
-        "avg_compliance_pct": avg_compliance,
-    }
