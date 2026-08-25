@@ -1,0 +1,38 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.3",
+	"Category": "Industrial & Construction Visualization",
+	"Description": "Agentic AI Safety Monitoring With Construction Risk Analytics - Unreal Engine 5.x Construction Site Digital Twin",
+	"Modules": [
+		{
+			"Name": "ConstructionIntelligenceTwin",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"UMG",
+				"CoreUObject",
+				"HTTP",
+				"Json",
+				"JsonUtilities"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "HTTP",
+			"Enabled": true
+		},
+		{
+			"Name": "WebSocketNetworking",
+			"Enabled": true
+		}
+	]
+}

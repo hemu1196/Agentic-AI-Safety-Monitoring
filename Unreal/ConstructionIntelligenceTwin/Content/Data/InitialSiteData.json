@@ -1,0 +1,154 @@
+{
+  "project_title": "Agentic AI Safety Monitoring With Construction Risk Analytics",
+  "engine_version": "Unreal Engine 5.3+",
+  "site_overview": {
+    "total_workers": 43,
+    "active_hazards": 7,
+    "overall_compliance_pct": 87.0,
+    "site_risk_score": 72.0,
+    "insurance_risk_score": 69.0,
+    "drone_status": "PATROLLING"
+  },
+  "zones": [
+    {
+      "zone_id": "ZONE_A_ENTRANCE",
+      "display_name": "Site Entrance Gate",
+      "risk_level": "LOW",
+      "risk_score": 20.0,
+      "status": "ACTIVE",
+      "active_workers": 6,
+      "active_hazards": 0,
+      "compliance_pct": 96.0,
+      "color_hex": "#10b981"
+    },
+    {
+      "zone_id": "ZONE_B_BUILDING",
+      "display_name": "Main Construction Building",
+      "risk_level": "MEDIUM",
+      "risk_score": 45.0,
+      "status": "ACTIVE",
+      "active_workers": 14,
+      "active_hazards": 1,
+      "compliance_pct": 89.0,
+      "color_hex": "#f59e0b"
+    },
+    {
+      "zone_id": "ZONE_C_CRANE",
+      "display_name": "Tower Crane Operations Zone",
+      "risk_level": "HIGH",
+      "risk_score": 75.0,
+      "status": "ACTIVE",
+      "active_workers": 8,
+      "active_hazards": 3,
+      "compliance_pct": 81.0,
+      "color_hex": "#f97316"
+    },
+    {
+      "zone_id": "ZONE_D_EXCAVATION",
+      "display_name": "Deep Trench Excavation Zone",
+      "risk_level": "CRITICAL",
+      "risk_score": 92.0,
+      "status": "RESTRICTED",
+      "active_workers": 5,
+      "active_hazards": 4,
+      "compliance_pct": 74.0,
+      "color_hex": "#ef4444"
+    },
+    {
+      "zone_id": "ZONE_E_STORAGE",
+      "display_name": "Steel & Rebar Material Storage",
+      "risk_level": "MEDIUM",
+      "risk_score": 38.0,
+      "status": "ACTIVE",
+      "active_workers": 4,
+      "active_hazards": 0,
+      "compliance_pct": 92.0,
+      "color_hex": "#f59e0b"
+    },
+    {
+      "zone_id": "ZONE_F_EQUIPMENT",
+      "display_name": "Heavy Machinery Staging",
+      "risk_level": "HIGH",
+      "risk_score": 68.0,
+      "status": "ACTIVE",
+      "active_workers": 4,
+      "active_hazards": 1,
+      "compliance_pct": 85.0,
+      "color_hex": "#f97316"
+    },
+    {
+      "zone_id": "ZONE_G_RESTRICTED",
+      "display_name": "High Voltage Hazard Area",
+      "risk_level": "CRITICAL",
+      "risk_score": 88.0,
+      "status": "RESTRICTED",
+      "active_workers": 2,
+      "active_hazards": 2,
+      "compliance_pct": 78.0,
+      "color_hex": "#ef4444"
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "W001",
+      "role": "Electrician",
+      "zone": "ZONE_A_ENTRANCE",
+      "helmet": true,
+      "vest": true,
+      "harness": true,
+      "risk_level": "LOW",
+      "violations": 0,
+      "action_status": "VERIFIED"
+    },
+    {
+      "worker_id": "W018",
+      "role": "Labourer",
+      "zone": "ZONE_C_CRANE",
+      "helmet": false,
+      "vest": true,
+      "harness": false,
+      "risk_level": "HIGH",
+      "violations": 4,
+      "action_status": "OPEN"
+    }
+  ],
+  "drone": {
+    "drone_id": "DRONE-01",
+    "status": "PATROLLING",
+    "altitude_m": 32.0,
+    "speed_ms": 4.2,
+    "battery_pct": 82.0,
+    "current_zone": "ZONE_C_CRANE"
+  },
+  "cctv": [
+    {"camera_id": "CCTV-01", "location": "Entrance Gate", "status": "ONLINE"},
+    {"camera_id": "CCTV-02", "location": "Main Building East", "status": "ONLINE"},
+    {"camera_id": "CCTV-03", "location": "Tower Crane Zone", "status": "ONLINE"},
+    {"camera_id": "CCTV-04", "location": "Excavation Trench", "status": "ONLINE"},
+    {"camera_id": "CCTV-05", "location": "Material Storage Yard", "status": "ONLINE"}
+  ],
+  "insurance_risk_breakdown": {
+    "worker_risk": 65.0,
+    "equipment_risk": 72.0,
+    "site_risk": 81.0,
+    "compliance_risk": 55.0,
+    "incident_risk": 68.0,
+    "overall_insurance_risk": 69.0,
+    "status": "HIGH"
+  },
+  "ai_recommendation": {
+    "risk_detected_zone": "ZONE_C_CRANE",
+    "reasons": [
+      "Repeated PPE violations detected",
+      "High-risk crane boom operation",
+      "Equipment certificate expiring",
+      "Open corrective actions"
+    ],
+    "recommended_actions": [
+      "1. Enforce mandatory helmet compliance for Worker W018",
+      "2. Schedule tower crane annual load inspection",
+      "3. Review Worker W018 site history",
+      "4. Increase drone surveillance frequency"
+    ]
+  }
+}

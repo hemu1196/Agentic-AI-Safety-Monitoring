@@ -1,6 +1,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import os
+import time
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -9,7 +10,66 @@ from utils import load_dataset, load_model_bundle, predict_single_sample, get_ri
 # Load ML model bundle
 model_bundle = load_model_bundle()
 
-class UnityAPIHandler(BaseHTTPRequestHandler):
+# Unreal Engine State Store
+unreal_state_store = {
+    "site_overview": {
+        "workers": 43,
+        "active_hazards": 7,
+        "compliance_pct": 87.0,
+        "site_risk": 72.0,
+        "insurance_risk": 69.0,
+        "drone_status": "PATROLLING"
+    },
+    "zones": {
+        "ZONE_A_ENTRANCE": {"name": "Site Entrance Gate", "risk": 20.0, "risk_level": "LOW", "status": "ACTIVE", "color": "#10b981"},
+        "ZONE_B_BUILDING": {"name": "Main Construction Building", "risk": 45.0, "risk_level": "MEDIUM", "status": "ACTIVE", "color": "#f59e0b"},
+        "ZONE_C_CRANE": {"name": "Tower Crane Operations", "risk": 75.0, "risk_level": "HIGH", "status": "ACTIVE", "color": "#f97316"},
+        "ZONE_D_EXCAVATION": {"name": "Deep Trench Excavation", "risk": 92.0, "risk_level": "CRITICAL", "status": "RESTRICTED", "color": "#ef4444"},
+        "ZONE_E_STORAGE": {"name": "Material Storage Area", "risk": 38.0, "risk_level": "MEDIUM", "status": "ACTIVE", "color": "#f59e0b"},
+        "ZONE_F_EQUIPMENT": {"name": "Heavy Machinery Yard", "risk": 68.0, "risk_level": "HIGH", "status": "ACTIVE", "color": "#f97316"},
+        "ZONE_G_RESTRICTED": {"name": "High Voltage Hazard Zone", "risk": 88.0, "risk_level": "CRITICAL", "status": "RESTRICTED", "color": "#ef4444"}
+    },
+    "workers": {
+        "W018": {
+            "worker_id": "W018",
+            "role": "Labourer",
+            "zone": "ZONE_C_CRANE",
+            "helmet": False,
+            "vest": True,
+            "harness": False,
+            "risk_level": 3,
+            "violations": 4,
+            "action_status": "OPEN"
+        },
+        "W001": {
+            "worker_id": "W001",
+            "role": "Electrician",
+            "zone": "ZONE_A_ENTRANCE",
+            "helmet": True,
+            "vest": True,
+            "harness": True,
+            "risk_level": 0,
+            "violations": 0,
+            "action_status": "VERIFIED"
+        }
+    },
+    "drone": {
+        "drone_id": "DRONE-01",
+        "zone": "ZONE_C_CRANE",
+        "altitude": 32.0,
+        "speed": 4.2,
+        "battery": 82.0,
+        "status": "PATROLLING"
+    },
+    "events": [
+        {"timestamp": "14:32:11", "severity": "RED ALERT", "message": "Worker W018 Helmet missing in Crane Zone"},
+        {"timestamp": "14:31:02", "severity": "WARNING", "message": "Crane inspection expires in 5 days"},
+        {"timestamp": "14:29:47", "severity": "INFO", "message": "Drone entered Zone D Excavation"},
+        {"timestamp": "14:27:31", "severity": "HIGH RISK", "message": "Restricted-zone entry detected"}
+    ]
+}
+
+class ConstructionAPIHandler(BaseHTTPRequestHandler):
     
     def _set_headers(self, status_code=200):
         self.send_response(status_code)
@@ -29,6 +89,18 @@ class UnityAPIHandler(BaseHTTPRequestHandler):
                 "status": "online",
                 "service": "Agentic AI Safety Monitoring API",
                 "model_loaded": model_bundle is not None
+            }
+            self.wfile.write(json.dumps(res).encode('utf-8'))
+        elif self.path == '/api/v1/unreal/site-state':
+            self._set_headers(200)
+            res = {
+                "status": "success",
+                "timestamp": time.strftime("%H:%M:%S"),
+                "site_overview": unreal_state_store["site_overview"],
+                "zones": unreal_state_store["zones"],
+                "workers": list(unreal_state_store["workers"].values()),
+                "drone": unreal_state_store["drone"],
+                "events": unreal_state_store["events"]
             }
             self.wfile.write(json.dumps(res).encode('utf-8'))
         else:
@@ -95,14 +167,72 @@ class UnityAPIHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+        elif self.path == '/api/v1/unreal/simulate-event':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8')) if post_data else {}
+                event_type = data.get("event_type", "PPE_VIOLATION")
+                worker_id = data.get("worker_id", "W018")
+                zone = data.get("zone", "ZONE_C_CRANE")
+
+                if event_type == "PPE_VIOLATION":
+                    unreal_state_store["workers"][worker_id] = {
+                        "worker_id": worker_id,
+                        "role": "Labourer",
+                        "zone": zone,
+                        "helmet": False,
+                        "vest": True,
+                        "harness": False,
+                        "risk_level": 3,
+                        "violations": 5,
+                        "action_status": "OPEN"
+                    }
+                    unreal_state_store["zones"][zone]["risk"] = 95.0
+                    unreal_state_store["zones"][zone]["risk_level"] = "CRITICAL"
+                    unreal_state_store["zones"][zone]["color"] = "#ef4444"
+                    unreal_state_store["site_overview"]["compliance_pct"] = 79.0
+                    unreal_state_store["site_overview"]["site_risk"] = 86.0
+                    unreal_state_store["site_overview"]["insurance_risk"] = 84.0
+
+                    unreal_state_store["events"].insert(0, {
+                        "timestamp": time.strftime("%H:%M:%S"),
+                        "severity": "RED ALERT",
+                        "message": f"Worker {worker_id} Helmet missing in {zone}!"
+                    })
+
+                elif event_type == "RESOLVE_VIOLATION":
+                    if worker_id in unreal_state_store["workers"]:
+                        unreal_state_store["workers"][worker_id]["helmet"] = True
+                        unreal_state_store["workers"][worker_id]["risk_level"] = 0
+                        unreal_state_store["workers"][worker_id]["action_status"] = "VERIFIED"
+
+                    unreal_state_store["zones"][zone]["risk"] = 35.0
+                    unreal_state_store["zones"][zone]["risk_level"] = "MEDIUM"
+                    unreal_state_store["zones"][zone]["color"] = "#f59e0b"
+                    unreal_state_store["site_overview"]["compliance_pct"] = 92.0
+                    unreal_state_store["site_overview"]["site_risk"] = 42.0
+                    unreal_state_store["site_overview"]["insurance_risk"] = 38.0
+
+                    unreal_state_store["events"].insert(0, {
+                        "timestamp": time.strftime("%H:%M:%S"),
+                        "severity": "VERIFIED",
+                        "message": f"Worker {worker_id} PPE violation resolved & verified!"
+                    })
+
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"status": "success", "event": event_type, "worker": worker_id}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         else:
             self._set_headers(404)
             self.wfile.write(json.dumps({"error": "Endpoint not found"}).encode('utf-8'))
 
 def run_server(port=8000):
     server_address = ('', port)
-    httpd = HTTPServer(server_address, UnityAPIHandler)
-    print(f"🚀 Agentic AI Safety Monitoring API Server running on http://localhost:{port}...")
+    httpd = HTTPServer(server_address, ConstructionAPIHandler)
+    print(f"🚀 Agentic AI Safety Monitoring & Unreal Engine REST API Server running on http://localhost:{port}...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
