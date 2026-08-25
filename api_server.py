@@ -83,7 +83,22 @@ class ConstructionAPIHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self):
-        if self.path == '/health':
+        clean_path = self.path.split('?')[0].rstrip('/')
+        if clean_path in ['', '/api', '/index.html']:
+            self._set_headers(200)
+            res = {
+                "service": "Agentic AI Safety Monitoring & Construction Risk Analytics API",
+                "version": "2.0.0",
+                "status": "online",
+                "available_endpoints": {
+                    "health_check": "GET /health",
+                    "unreal_site_state": "GET /api/v1/unreal/site-state",
+                    "risk_predictor": "POST /predict",
+                    "unreal_simulate_event": "POST /api/v1/unreal/simulate-event"
+                }
+            }
+            self.wfile.write(json.dumps(res, indent=2).encode('utf-8'))
+        elif clean_path == '/health':
             self._set_headers(200)
             res = {
                 "status": "online",
@@ -91,7 +106,7 @@ class ConstructionAPIHandler(BaseHTTPRequestHandler):
                 "model_loaded": model_bundle is not None
             }
             self.wfile.write(json.dumps(res).encode('utf-8'))
-        elif self.path == '/api/v1/unreal/site-state':
+        elif clean_path == '/api/v1/unreal/site-state':
             self._set_headers(200)
             res = {
                 "status": "success",
@@ -102,13 +117,18 @@ class ConstructionAPIHandler(BaseHTTPRequestHandler):
                 "drone": unreal_state_store["drone"],
                 "events": unreal_state_store["events"]
             }
-            self.wfile.write(json.dumps(res).encode('utf-8'))
+            self.wfile.write(json.dumps(res, indent=2).encode('utf-8'))
         else:
             self._set_headers(404)
-            self.wfile.write(json.dumps({"error": "Endpoint not found"}).encode('utf-8'))
+            self.wfile.write(json.dumps({
+                "error": "Endpoint not found",
+                "path_requested": self.path,
+                "hint": "Try GET /health or GET /api/v1/unreal/site-state"
+            }).encode('utf-8'))
 
     def do_POST(self):
-        if self.path == '/predict':
+        clean_path = self.path.split('?')[0].rstrip('/')
+        if clean_path == '/predict':
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
             
@@ -162,12 +182,12 @@ class ConstructionAPIHandler(BaseHTTPRequestHandler):
                 }
                 
                 self._set_headers(200)
-                self.wfile.write(json.dumps(response).encode('utf-8'))
+                self.wfile.write(json.dumps(response, indent=2).encode('utf-8'))
 
             except Exception as e:
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-        elif self.path == '/api/v1/unreal/simulate-event':
+        elif clean_path == '/api/v1/unreal/simulate-event':
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
             try:
@@ -221,13 +241,13 @@ class ConstructionAPIHandler(BaseHTTPRequestHandler):
                     })
 
                 self._set_headers(200)
-                self.wfile.write(json.dumps({"status": "success", "event": event_type, "worker": worker_id}).encode('utf-8'))
+                self.wfile.write(json.dumps({"status": "success", "event": event_type, "worker": worker_id}, indent=2).encode('utf-8'))
             except Exception as e:
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         else:
             self._set_headers(404)
-            self.wfile.write(json.dumps({"error": "Endpoint not found"}).encode('utf-8'))
+            self.wfile.write(json.dumps({"error": "Endpoint not found", "path_requested": self.path}).encode('utf-8'))
 
 def run_server(port=8000):
     server_address = ('', port)
