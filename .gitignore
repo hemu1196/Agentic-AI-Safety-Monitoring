@@ -1,28 +1,24 @@
-# Python / Streamlit
-__pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-.venv/
-env/
-venv/
-*.db
-!captured_workers/
-
-# Unreal Engine 5.x Generated Folders & Files
-Unreal/ConstructionIntelligenceTwin/Binaries/
-Unreal/ConstructionIntelligenceTwin/DerivedDataCache/
-Unreal/ConstructionIntelligenceTwin/Intermediate/
-Unreal/ConstructionIntelligenceTwin/Saved/
-Unreal/ConstructionIntelligenceTwin/Build/
-Unreal/ConstructionIntelligenceTwin/.vs/
-Unreal/ConstructionIntelligenceTwin/*.sln
-Unreal/ConstructionIntelligenceTwin/*.VC.db
-Unreal/ConstructionIntelligenceTwin/*.opensdf
-Unreal/ConstructionIntelligenceTwin/*.sdf
-
-# OS / Editor
-.DS_Store
-.vscode/
-.idea/
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
