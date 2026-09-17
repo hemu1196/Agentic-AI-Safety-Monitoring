@@ -72,4 +72,13 @@ The best-performing model is selected for construction risk prediction.
 ## 🎯 Objective
 
 The main objective of this project is to combine **Artificial Intelligence, Safety Intelligence, Data Analytics, and 3D Digital Twin technology** to support smarter and safer construction project management.
+## Project Overview
 
+Construction Intelligence Hub is a smart platform designed to organize construction-related information and improve project management through digital tools.
+
+### Key Features
+
+- Centralized construction project information
+- Organized project documentation
+- Improved access to construction-related resources
+- Support for efficient project coordination
